@@ -4,9 +4,9 @@ import cv2
 import numpy as np
 
 import sys
-sys.path.append("...")
-from .utils import BBoxTransform, ClipBoxes
-from utils.eff_utils import postprocess, invert_affine, display
+sys.path.append('..')
+from models.efficientdet.utils import BBoxTransform, ClipBoxes
+from utils.utils import postprocess, invert_affine, display
 
 
 def calc_iou(a, b):

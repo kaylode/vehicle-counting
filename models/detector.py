@@ -5,7 +5,7 @@ import torch.nn as nn
 from tqdm import tqdm
 from torchvision import transforms
 from .backbone import EfficientDetBackbone
-from .efficientdet.loss import FocalLoss
+from losses.focalloss import FocalLoss
 
 class Detector(BaseModel):
     def __init__(self, model, n_classes, **kwargs):
