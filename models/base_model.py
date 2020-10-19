@@ -2,15 +2,12 @@ import torch
 import torch.nn as nn
 import torch.utils.data as data
 
-from metrics.classification import AccuracyMetric
-
-
 
 class BaseModel(nn.Module):
     def __init__(self,
                 optimizer,
                 criterion,
-                metrics = AccuracyMetric(),
+                metrics = None,
                 lr = 1e-4,
                 device = None,
                 freeze = False,
