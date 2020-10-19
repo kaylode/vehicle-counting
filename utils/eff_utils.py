@@ -14,7 +14,6 @@ from torch import nn
 from torch.nn.init import _calculate_fan_in_and_fan_out, _no_grad_normal_
 from torchvision.ops.boxes import batched_nms
 from .bb_polygon import is_bounding_box_intersect
-from utils.sync_batchnorm import SynchronizedBatchNorm2d
 import torchvision
 obj_list = ['motorcycle', 'car', 'bus', 'truck']
 
@@ -160,62 +159,6 @@ def display(preds, imgs, obj_list, imshow=True, imwrite=False):
         if imwrite:
             os.makedirs('test/', exist_ok=True)
             cv2.imwrite(f'test/{uuid.uuid4().hex}.jpg', imgs[i])
-
-
-def replace_w_sync_bn(m):
-    for var_name in dir(m):
-        target_attr = getattr(m, var_name)
-        if type(target_attr) == torch.nn.BatchNorm2d:
-            num_features = target_attr.num_features
-            eps = target_attr.eps
-            momentum = target_attr.momentum
-            affine = target_attr.affine
-
-            # get parameters
-            running_mean = target_attr.running_mean
-            running_var = target_attr.running_var
-            if affine:
-                weight = target_attr.weight
-                bias = target_attr.bias
-
-            setattr(m, var_name,
-                    SynchronizedBatchNorm2d(num_features, eps, momentum, affine))
-
-            target_attr = getattr(m, var_name)
-            # set parameters
-            target_attr.running_mean = running_mean
-            target_attr.running_var = running_var
-            if affine:
-                target_attr.weight = weight
-                target_attr.bias = bias
-
-    for var_name, children in m.named_children():
-        replace_w_sync_bn(children)
-
-
-class CustomDataParallel(nn.DataParallel):
-    """
-    force splitting data to all gpus instead of sending all data to cuda:0 and then moving around.
-    """
-
-    def __init__(self, module, num_gpus):
-        super().__init__(module)
-        self.num_gpus = num_gpus
-
-    def scatter(self, inputs, kwargs, device_ids):
-        # More like scatter and data prep at the same time. The point is we prep the data in such a way
-        # that no scatter is necessary, and there's no need to shuffle stuff around different GPUs.
-        devices = ['cuda:' + str(x) for x in range(self.num_gpus)]
-        splits = inputs[0].shape[0] // self.num_gpus
-
-        if splits == 0:
-            raise Exception('Batchsize must be greater than num_gpus.')
-
-        return [(inputs[0][splits * device_idx: splits * (device_idx + 1)].to(f'cuda:{device_idx}', non_blocking=True),
-                 inputs[1][splits * device_idx: splits * (device_idx + 1)].to(f'cuda:{device_idx}', non_blocking=True))
-                for device_idx in range(len(devices))], \
-               [kwargs] * len(devices)
-
 
 def get_last_weights(weights_path):
     weights_path = glob(weights_path + f'/*.pth')
