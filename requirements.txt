@@ -1,0 +1,6 @@
+emoji
+nltk
+transformers
+pytorch_lightning
+tensorboard
+tqdm

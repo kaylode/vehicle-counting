@@ -1,0 +1,6 @@
+
+dataset:
+  batch_size: 4
+  img_path: "datasets/datasets/VOC/images"
+  train_path: "datasets/datasets/VOC/annotations/pascal_train2012.json"
+  val_path: "datasets/datasets/VOC/annotations/pascal_val2012.json"
