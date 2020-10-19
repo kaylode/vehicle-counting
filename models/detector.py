@@ -4,15 +4,16 @@ import torchvision.models as models
 import torch.nn as nn
 from tqdm import tqdm
 from torchvision import transforms
-
+from .backbone import EfficientDetBackbone
+from .efficientdet.loss import FocalLoss
 
 class Detector(BaseModel):
-    def __init__(self, n_classes, **kwargs):
+    def __init__(self, model, n_classes, **kwargs):
         super(Detector, self).__init__(**kwargs)
-        """self.model = None
-        self.model_name = "None"
+        self.model = model
+        self.model_name = "EfficientDet"
         self.optimizer = self.optimizer(self.parameters(), lr= self.lr)
-        
+        self.set_optimizer_params()
         self.n_classes = n_classes
 
         if self.freeze:
@@ -21,23 +22,21 @@ class Detector(BaseModel):
 
         if self.device:
             self.model.to(self.device)
-            self.criterion.to(self.device)"""
         
     def forward(self, x):
         return self.model(x)
 
     def training_step(self, batch):
         inputs = batch["imgs"]
-        boxes = batch['boxes']
         labels = batch['labels']
 
         if self.device:
             inputs = inputs.to(self.device)
-            boxes = [x.to(self.device) for x in boxes]
-            labels = [x.to(self.device) for x in labels]
+            labels = labels.to(self.device)
+
+        _, regression, classification, anchors = self.model(inputs)
+        loss = self.criterion(classification, regression, anchors, labels)
         
-        loc_preds, cls_preds = self(inputs)
-        loss = self.criterion(loc_preds, cls_preds, boxes, labels)
         return loss
 
     
@@ -54,39 +53,23 @@ class Detector(BaseModel):
 
         outputs = self.model.detect(loc_preds, cls_preds)#[self.model.detect(i,j) for i,j in zip(loc_preds,cls_preds)]
             
-        """if self.device:
-            outputs['boxes'] = outputs['boxes'].cpu()
-            outputs['labels'] = outputs['labels'].cpu()
-            outputs['scores'] = outputs['scores'].cpu()"""
         
         return outputs
 
     def evaluate_step(self, batch):
         inputs = batch["imgs"]
-        boxes = batch['boxes']
         labels = batch['labels']
 
         if self.device:
             inputs = inputs.to(self.device)
-            boxes = [x.to(self.device) for x in boxes]
-            labels = [x.to(self.device) for x in labels]
+            labels = labels.to(self.device)
 
-        loc_preds, cls_preds = self(inputs)
-        loss = self.criterion(loc_preds, cls_preds, boxes, labels)
+        _, regression, classification, anchors = self.model(inputs)
+        loss = self.criterion(classification, regression, anchors, labels)
+
         metric_dict = {'map': 0}
-        """outputs = self.model.detect(
-            loc_preds,
-            cls_preds)
 
-        metric_dict = self.update_metrics(
-            outputs = {
-                'det_boxes': outputs['boxes'],
-                'det_labels': outputs['labels'],
-                'det_scores': outputs['scores']},
-            targets={
-                'gt_boxes': boxes,
-                'gt_labels': labels})"""
-        
+    
         return loss , metric_dict
 
     def forward_test(self, size = 224):
