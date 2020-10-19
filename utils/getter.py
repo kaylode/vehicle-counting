@@ -4,7 +4,8 @@ from trainer import *
 from augmentations import *
 from loggers import *
 from configs import *
-
+from losses import *
+from utils import *
 
 import torch
 from tqdm import tqdm
