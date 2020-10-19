@@ -3,8 +3,10 @@ import torch.nn as nn
 import cv2
 import numpy as np
 
-from efficientdet.utils import BBoxTransform, ClipBoxes
-from utils.utils import postprocess, invert_affine, display
+import sys
+sys.path.append("...")
+from .utils import BBoxTransform, ClipBoxes
+from utils.eff_utils import postprocess, invert_affine, display
 
 
 def calc_iou(a, b):
@@ -177,6 +179,12 @@ class FocalLoss(nn.Module):
             imgs = ((imgs * [0.229, 0.224, 0.225] + [0.485, 0.456, 0.406]) * 255).astype(np.uint8)
             imgs = [cv2.cvtColor(img, cv2.COLOR_RGB2BGR) for img in imgs]
             display(out, imgs, obj_list, imshow=False, imwrite=True)
+        
 
-        return torch.stack(classification_losses).mean(dim=0, keepdim=True), \
-               torch.stack(regression_losses).mean(dim=0, keepdim=True) * 50  # https://github.com/google/automl/blob/6fdd1de778408625c1faf368a327fe36ecd41bf7/efficientdet/hparams_config.py#L233
+        cls_loss = torch.stack(classification_losses).mean(dim=0, keepdim=True)
+        reg_loss = torch.stack(regression_losses).mean(dim=0, keepdim=True) * 50
+        cls_loss = cls_loss.mean()
+        reg_loss = reg_loss.mean()
+
+        total_loss = cls_loss + reg_loss
+        return total_loss, {'C': cls_loss.item(), 'B': reg_loss.item(), 'T': total_loss.item()}
