@@ -45,6 +45,10 @@ def load_checkpoint(model, path):
     :param path: (string) checkpoint path
     """
     state = torch.load(path)
-    model.model.load_state_dict(state["model"])
-    model.optimizer.load_state_dict(state["optimizer"])
+    try:
+        model.model.load_state_dict(state["model"])
+        model.optimizer.load_state_dict(state["optimizer"])
+    except KeyError:
+        model.model.load_state_dict(state)
+   
     print("Loaded Successfully!")
