@@ -85,28 +85,28 @@ class CocoDataset(Dataset):
         return annotations
 
 
-def collater(data):
-    imgs = [s['img'] for s in data]
-    annots = [s['annot'] for s in data]
-    scales = [s['scale'] for s in data]
+    def collate_fn(self, data):
+        imgs = [s['img'] for s in data]
+        annots = [s['annot'] for s in data]
+        scales = [s['scale'] for s in data]
 
-    imgs = torch.from_numpy(np.stack(imgs, axis=0))
+        imgs = torch.from_numpy(np.stack(imgs, axis=0))
 
-    max_num_annots = max(annot.shape[0] for annot in annots)
+        max_num_annots = max(annot.shape[0] for annot in annots)
 
-    if max_num_annots > 0:
+        if max_num_annots > 0:
 
-        annot_padded = torch.ones((len(annots), max_num_annots, 5)) * -1
+            annot_padded = torch.ones((len(annots), max_num_annots, 5)) * -1
 
-        for idx, annot in enumerate(annots):
-            if annot.shape[0] > 0:
-                annot_padded[idx, :annot.shape[0], :] = annot
-    else:
-        annot_padded = torch.ones((len(annots), 1, 5)) * -1
+            for idx, annot in enumerate(annots):
+                if annot.shape[0] > 0:
+                    annot_padded[idx, :annot.shape[0], :] = annot
+        else:
+            annot_padded = torch.ones((len(annots), 1, 5)) * -1
 
-    imgs = imgs.permute(0, 3, 1, 2)
+        imgs = imgs.permute(0, 3, 1, 2)
 
-    return {'imgs': imgs, 'labels': annot_padded, 'scale': scales}
+        return {'imgs': imgs, 'labels': annot_padded, 'scale': scales}
 
 
 class Resizer(object):
