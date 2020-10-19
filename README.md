@@ -1,4 +1,4 @@
-# Vehicle Counting (Pytorch)
+# Vehicle Counting using EfficientDet + DeepSORT (Pytorch)
 
 - Source code of ***#Team 059*** for AI Challenge of Ho Chi Minh City 2020
   - Task info: http://aichallenge.hochiminhcity.gov.vn/huong-dan-nhom-1
