@@ -6,36 +6,18 @@ import os
 from utils.utils import *
 from PIL import Image
 import matplotlib.pyplot as plt
-from deepsort.deep_sort import DeepSort
+from models.deepsort.deep_sort import DeepSort
 from tqdm import tqdm
 import argparse
 import json
 import cv2
+from configs import Config
 
 frame_width = 1280
 frame_height = 720
 
 
-cfg = {
-    'REID_CKPT': "./deepsort/deep/checkpoint/ckpt.t7",
-    'MAX_DIST': 0.2,
-    'MIN_CONFIDENCE': 0.3,
-    'NMS_MAX_OVERLAP': 0.5,
-    'MAX_IOU_DISTANCE': 0.9, # 
-    'MAX_AGE': 40,
-    'N_INIT': 7,
-    'NN_BUDGET': 60}
-    
-deepsort = DeepSort(
-    cfg['REID_CKPT'], 
-    max_dist=cfg['MAX_DIST'],
-    min_confidence=cfg['MIN_CONFIDENCE'], 
-    nms_max_overlap=cfg['NMS_MAX_OVERLAP'],
-    max_iou_distance=cfg['MAX_IOU_DISTANCE'], 
-    max_age=cfg['MAX_AGE'],
-    n_init=cfg['N_INIT'],
-    nn_budget=cfg['NN_BUDGET'],
-    use_cuda=1)
+
 
 vehicle_id = {
         1: 'car',
@@ -45,19 +27,37 @@ vehicle_id = {
     }
 
 
-def main(args):
+def main(args, config):
     path = args.box_path
     ann_path= args.ann_path
     video_path = args.video_path
-    output_vid = args.output
     debug_mode = args.debug
 
-    if output_vid is not None:
-        outvid = cv2.VideoWriter(output_vid,cv2.VideoWriter_fourcc(*'mp4v'), 10, (frame_width,frame_height))
+    video_name = path[-6:]
+    
+
+    cfg = config.cam[video_name]
+    
+    deepsort = DeepSort(
+        cfg['REID_CKPT'], 
+        max_dist=cfg['MAX_DIST'],
+        min_confidence=cfg['MIN_CONFIDENCE'], 
+        nms_max_overlap=cfg['NMS_MAX_OVERLAP'],
+        max_iou_distance=cfg['MAX_IOU_DISTANCE'], 
+        max_age=cfg['MAX_AGE'],
+        n_init=cfg['N_INIT'],
+        nn_budget=cfg['NN_BUDGET'],
+        use_cuda=1)
+
+
+    if not os.path.exists('results/videos'):
+        os.mkdir('results/videos')
+    output_vid = os.path.join('results/videos/',video_name+'.mp4')
+    outvid = cv2.VideoWriter(output_vid,cv2.VideoWriter_fourcc(*'mp4v'), 10, (frame_width,frame_height))
 
     root =  ann_path
     
-    video_name = path[-6:]
+    
     cam_id = int(video_name[-2:])
     direct = get_directions(root, video_name)
     polygons = get_zone(root, video_name)
@@ -143,12 +143,17 @@ if __name__ == '__main__':
                         help='path to zone folder')
     parser.add_argument('--video_path', type=str, 
                         help='path to image folder')
-    parser.add_argument('--output', type=str, default = None,
-                        help='name of output to .avi file')
-    parser.add_argument('--debug', type=bool, default = False,
+    parser.add_argument('--output_path', type=str, default = 'results',
+                        help='name of output results')
+    parser.add_argument('--debug', action='store_true', default = False,
                         help='debug print object id to file')
-    args = parser.parse_args() 
-    main(args)
+    parser.add_argument('--config', default = './configs/cam_configs.yaml',
+                        help='configuration cam file')
+
+    args = parser.parse_args()
+    configs = Config(args.config)
+
+    main(args, configs)
 
 
     
