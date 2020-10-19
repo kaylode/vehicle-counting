@@ -51,8 +51,7 @@ class Trainer(nn.Module):
                     
                 if self.scheduler is not None:
                     self.scheduler.step()
-                if (epoch % self.checkpoint.save_per_epoch == 0 or epoch == num_epochs - 1):
-                    self.checkpoint.save(self.model, epoch = epoch)
+                
 
             except KeyboardInterrupt:   
                 self.checkpoint.save(self.model, epoch = epoch, interrupted = True)
@@ -103,6 +102,9 @@ class Trainer(nn.Module):
                 self.logging({"Training Loss/Batch" : running_loss['T']/ self.print_per_iter,})
                 running_loss = {}
                 running_time = 0
+
+            if (iters % self.checkpoint.save_per_iter == 0 or iters == self.num_iters - 1):
+                self.checkpoint.save(self.model, epoch = self.epoch, iters=iters)
 
     def inference_batch(self, testloader):
         self.model.eval()
