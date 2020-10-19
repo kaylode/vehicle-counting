@@ -9,9 +9,9 @@ class Checkpoint():
     :param save_per_epoch: (int)
     :param path: (string)
     """
-    def __init__(self, save_per_epoch = 1, path = None):
+    def __init__(self, save_per_iter = 1000, path = None):
         self.path = path
-        self.save_per_epoch = save_per_epoch
+        self.save_per_iter = save_per_iter
         # Create folder
         if self.path is None:
             self.path = os.path.join('weights',datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
@@ -26,7 +26,8 @@ class Checkpoint():
             os.mkdir(self.path)
 
         epoch = kwargs['epoch'] if 'epoch' in kwargs else '0'
-        model_path = "-".join([model.model_name,str(epoch)])
+        iters = kwargs['iters'] if 'iters' in kwargs else '0'
+        model_path = "_".join([model.model_name,str(epoch), str(iters)])
         if 'interrupted' in kwargs:
             model_path +='_interrupted'
             
