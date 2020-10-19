@@ -1,19 +1,20 @@
 import time
 import torch
-from torch.backends import cudnn
-from matplotlib import colors
 import os
-from backbone import EfficientDetBackbone
 import cv2
-import numpy as np
-import json
-from efficientdet.utils import BBoxTransform, ClipBoxes
-from utils.utils import *
-from PIL import Image
-import matplotlib.pyplot as plt
-from deepsort.deep_sort import DeepSort
 from tqdm import tqdm
 import argparse
+import numpy as np
+import json
+from PIL import Image
+from torch.backends import cudnn
+from matplotlib import colors
+import matplotlib.pyplot as plt
+
+
+from models.backbone import EfficientDetBackbone
+from models.efficientdet.utils import BBoxTransform, ClipBoxes
+from utils.utils import *
 
 coco_vehicle_id_map = {
         1: 0,
@@ -29,17 +30,6 @@ custom_vehicle_id_map = {
         2: 2,
         3: 3
     }
-
-vehicle_name = {
-        0: 'motorcycle',
-        1: 'car',
-        2: 'bus',
-        3: 'truck'
-    }
-
-
-
-color_list = standard_to_bgr(STANDARD_COLORS)
 
 frame_width = 1280
 frame_height = 720
@@ -89,7 +79,11 @@ def main(args):
                              ratios=anchor_ratios, scales=anchor_scales)
         vehicle_id = custom_vehicle_id_map
 
-    model.load_state_dict(torch.load(weight_path, map_location='cpu'))
+    state = torch.load(weight_path, map_location='cpu')
+    if isinstance(state, dict):
+        model.load_state_dict(state['model'])
+    else:
+        model.load_state_dict(state)
     print('Load pretrained weights!')
 
     
