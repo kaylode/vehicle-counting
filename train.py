@@ -5,37 +5,26 @@ import os
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
+from torchvision import transforms
 
 
 def train(args, config):
+    
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     if torch.cuda.is_available():
         torch.cuda.manual_seed(42)
     else:
         torch.manual_seed(42)
 
-    train_transforms = Compose([
-        Resize(size = config.image_size),
-        RandomHorizontalFlip(0.5),
-        RandomShear(0.2),
-        Rotation(),
-        ToTensor(),
-        Cutout(0.05),
-        Normalize()
-    ])
-
-    val_transforms = Compose([
-        Resize(size = config.image_size),
-        ToTensor(),
-        Normalize()
-    ])
-
-    #input_sizes = [512, 640, 768, 896, 1024, 1280, 1280, 1536, 1536]
+    input_sizes = [512, 640, 768, 896, 1024, 1280, 1280, 1536, 1536]
     trainset = CocoDataset(root_dir=os.path.join('datasets', config.project_name), set= config.train_set, types= 'train',
-                               transforms=train_transforms)
+                               transform=transforms.Compose([Normalizer(mean=config.mean, std=config.std),
+                                                             Augmenter(),        
+                                                             Resizer(input_sizes[args.compound_coef])]))
     
     valset = CocoDataset(root_dir=os.path.join('datasets', config.project_name), set= config.val_set, types= 'val',
-                          transforms=val_transforms)
+                          transform=transforms.Compose([Normalizer(mean=config.mean, std=config.std),
+                                                        Resizer(input_sizes[args.compound_coef])]))
     
     trainloader = DataLoader(trainset, batch_size=args.batch_size, shuffle = True, drop_last= True, collate_fn=trainset.collate_fn, num_workers= args.num_workers)
     valloader = DataLoader(valset, batch_size=args.batch_size, shuffle = False, drop_last= True, collate_fn=valset.collate_fn, num_workers= args.num_workers)
