@@ -1,20 +1,29 @@
+import sys
+sys.path.append('..')
+
 import os
 import torch
+import random
 import numpy as np
+from PIL import Image
+import matplotlib.pyplot as plt
+import matplotlib.pyplot as patches
 
+from utils.utils import change_box_order
+from augmentations.transforms import Normalize
 from torch.utils.data import Dataset, DataLoader
 from pycocotools.coco import COCO
 import cv2
 
 
 class CocoDataset(Dataset):
-    def __init__(self, root_dir, set='train2017', types='train', transform=None):
+    def __init__(self, root_dir, set='train2017', types='train', transforms=None):
 
         self.root_dir = root_dir
         self.set_name = set
-        self.transform = transform
-
-        # 
+        self.transforms = transforms
+        self.mode = 'xyxy'
+        
         self.coco = COCO(os.path.join(self.root_dir, 'annotations', 'instances_' + types + '.json'))
         self.image_ids = self.coco.getImgIds()
 
@@ -39,22 +48,32 @@ class CocoDataset(Dataset):
         return len(self.image_ids)
 
     def __getitem__(self, idx):
-
         img = self.load_image(idx)
         annot = self.load_annotations(idx)
-        sample = {'img': img, 'annot': annot}
-        if self.transform:
-            sample = self.transform(sample)
-        return sample
+        box = annot[:, :4]
+        label = annot[:, -1]
+        
+        if self.transforms:
+            item = self.transforms(img = img, box = box, label = label)
+            img = item['img']
+            box = item['box']
+            label = item['label']
+            
+            box = change_box_order(box, order = 'xywh2xyxy')
+            
+        return {
+            'img': img,
+            'box': box,
+            'label': label
+        }
 
     def load_image(self, image_index):
         image_info = self.coco.loadImgs(self.image_ids[image_index])[0]
         path = os.path.join(self.root_dir, self.set_name, image_info['file_name'])
   
-        img = cv2.imread(path)
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-
-        return img.astype(np.float32) / 255.
+        img = Image.open(path).convert('RGB')
+    
+        return img 
 
     def load_annotations(self, image_index):
         # get ground truth annotations
@@ -64,7 +83,7 @@ class CocoDataset(Dataset):
         # some images appear to miss annotations
         if len(annotations_ids) == 0:
             return annotations
-
+        
         # parse annotations
         coco_annotations = self.coco.loadAnns(annotations_ids)
         for idx, a in enumerate(coco_annotations):
@@ -78,19 +97,12 @@ class CocoDataset(Dataset):
             annotation[0, 4] = a['category_id'] - 1
             annotations = np.append(annotations, annotation, axis=0)
 
-        # transform from [x, y, w, h] to [x1, y1, x2, y2]
-        annotations[:, 2] = annotations[:, 0] + annotations[:, 2]
-        annotations[:, 3] = annotations[:, 1] + annotations[:, 3]
-
         return annotations
 
 
-    def collate_fn(self, data):
-        imgs = [s['img'] for s in data]
-        annots = [s['annot'] for s in data]
-        scales = [s['scale'] for s in data]
-
-        imgs = torch.from_numpy(np.stack(imgs, axis=0))
+    def collate_fn(self, batch):
+        imgs = torch.stack([s['img'] for s in batch])   
+        annots = [torch.cat([s['box'] , s['label'].unsqueeze(1)], dim=1) for s in batch]
 
         max_num_annots = max(annot.shape[0] for annot in annots)
 
@@ -104,165 +116,95 @@ class CocoDataset(Dataset):
         else:
             annot_padded = torch.ones((len(annots), 1, 5)) * -1
 
-        imgs = imgs.permute(0, 3, 1, 2)
-
-        return {'imgs': imgs, 'labels': annot_padded, 'scale': scales}
+        return {'imgs': imgs, 'labels': annot_padded}
 
 
-class Resizer(object):
-    """Convert ndarrays in sample to Tensors."""
-    
-    def __init__(self, img_size=512):
-        self.img_size = img_size
+    def visualize_item(self, index = None, figsize=(15,15)):
+        """
+        Visualize an image with its bouding boxes by index
+        """
 
-    def __call__(self, sample):
-        image, annots = sample['img'], sample['annot']
-        height, width, _ = image.shape
-        if height > width:
-            scale = self.img_size / height
-            resized_height = self.img_size
-            resized_width = int(width * scale)
+        if index is None:
+            index = random.randint(0,len(self.coco.imgs))
+        item = self.__getitem__(index)
+        img = item['img']
+        box = item['box']
+        label = item['label']
+
+        if any(isinstance(x, Normalize) for x in self.transforms.transforms_list):
+            normalize = True
         else:
-            scale = self.img_size / width
-            resized_height = int(height * scale)
-            resized_width = self.img_size
+            normalize = False
 
-        image = cv2.resize(image, (resized_width, resized_height), interpolation=cv2.INTER_LINEAR)
+        # Denormalize and reverse-tensorize
+        if normalize:
+            results = self.transforms.denormalize(img = img, box = box, label = label)
+            img, label, box = results['img'], results['label'], results['box']
+    
+        # Numpify
+        label = label.numpy()
+        box = box.numpy()
 
-        new_image = np.zeros((self.img_size, self.img_size, 3))
-        new_image[0:resized_height, 0:resized_width] = image
+        if self.mode == 'xyxy':
+            box=change_box_order(box, 'xyxy2xywh')
 
-        annots[:, :4] *= scale
+        self.visualize(img, box, label, figsize = figsize)
 
-        return {'img': torch.from_numpy(new_image).to(torch.float32), 'annot': torch.from_numpy(annots), 'scale': scale}
+    
+    def visualize(self, img, boxes, labels, figsize=(15,15)):
+        """
+        Visualize an image with its bouding boxes
+        """
+        fig,ax = plt.subplots(figsize=figsize)
 
-class Rotation(object):
-    def __init__(self, angle = 10):
-        self.angle= angle
-    def __call__(self, sample):
-        '''
-            Rotate image and bounding box
-            image: A Pil image (w, h)
-            boxes: A tensors of dimensions (#objects, 4)
-            
-            Out: rotated image (w, h), rotated boxes
-        '''
+        if isinstance(img, torch.Tensor):
+            img = img.numpy().squeeze().transpose((1,2,0))
+        # Display the image
+        ax.imshow(img)
 
-         
-        image, boxes = sample['img'], sample['annot']
+        # Create a Rectangle patch
+        for box, label in zip(boxes, labels):
+            color = np.random.rand(3,)
+            x,y,w,h = box
+            rect = patches.Rectangle((x,y),w,h,linewidth=2,edgecolor = color,facecolor='none')
+            plt.text(x, y-3, self.labels[label], color = color, fontsize=20)
+            # Add the patch to the Axes
+            ax.add_patch(rect)
+        plt.show()
+
+    def count_dict(self, types = 1):
+        """
+        Count class frequencies
+        """
+        cnt_dict = {}
+        if types == 1: # Object Frequencies
+            for cl in self.classes.keys():
+                num_objs = sum([1 for i in self.coco.anns if self.coco.anns[i]['category_id']-1 == self.classes[cl]])
+                cnt_dict[cl] = num_objs
+        elif types == 2:
+            pass
+        return cnt_dict
+
+    def plot(self, figsize = (8,8), types = ["freqs"]):
+        """
+        Plot classes distribution
+        """
+        ax = plt.figure(figsize = figsize)
         
+        if "freqs" in types:
+            cnt_dict = self.count_dict(types = 1)
+            plt.title("Total objects can be seen: "+ str(sum(list(cnt_dict.values()))))
+            bar1 = plt.bar(list(cnt_dict.keys()), list(cnt_dict.values()), color=[np.random.rand(3,) for i in range(len(self.classes))])
+            for rect in bar1:
+                height = rect.get_height()
+                plt.text(rect.get_x() + rect.get_width()/2.0, height, '%d' % int(height), ha='center', va='bottom')
+        
+        plt.show()
 
-        new_image = image.copy()
-        new_boxes = boxes.copy()
-        
-        #Rotate image, expand = True
-        w = image.shape[1]
-        h = image.shape[0]
-        cx = w/2
-        cy = h/2
-        new_image = new_image.rotate(self.angle, expand= True)
-        angle = np.radians(self.angle)
-        alpha = np.cos(angle)
-        beta = np.sin(angle)
-        #Get affine matrix
-        AffineMatrix = torch.tensor([[alpha, beta, (1-alpha)*cx - beta*cy],
-                                    [-beta, alpha, beta*cx + (1-alpha)*cy]])
-        
-        #Rotation boxes
-        box_width = (boxes[:,2] - boxes[:,0]).reshape(-1,1)
-        box_height = (boxes[:,3] - boxes[:,1]).reshape(-1,1)
-        
-        #Get corners for boxes
-        x1 = boxes[:,0].reshape(-1,1)
-        y1 = boxes[:,1].reshape(-1,1)
-        
-        x2 = x1 + box_width
-        y2 = y1 
-        
-        x3 = x1
-        y3 = y1 + box_height
-        
-        x4 = boxes[:,2].reshape(-1,1)
-        y4 = boxes[:,3].reshape(-1,1)
-        
-        corners = torch.stack((x1,y1,x2,y2,x3,y3,x4,y4), dim= 1)
-        corners.reshape(8, 8)    #Tensors of dimensions (#objects, 8)
-        corners = corners.reshape(-1,2) #Tensors of dimension (4* #objects, 2)
-        corners = torch.cat((corners, torch.ones(corners.shape[0], 1)), dim= 1) #(Tensors of dimension (4* #objects, 3))
-        
-        cos = np.abs(AffineMatrix[0, 0])
-        sin = np.abs(AffineMatrix[0, 1])
-        
-        nW = int((h * sin) + (w * cos))
-        nH = int((h * cos) + (w * sin))
-        AffineMatrix[0, 2] += (nW / 2) - cx
-        AffineMatrix[1, 2] += (nH / 2) - cy
-        
-        #Apply affine transform
-        rotate_corners = torch.mm(AffineMatrix, corners.t()).t()
-        rotate_corners = rotate_corners.reshape(-1,8)
-        
-        x_corners = rotate_corners[:,[0,2,4,6]]
-        y_corners = rotate_corners[:,[1,3,5,7]]
-        
-        #Get (x_min, y_min, x_max, y_max)
-        x_min, _ = torch.min(x_corners, dim= 1)
-        x_min = x_min.reshape(-1, 1)
-        y_min, _ = torch.min(y_corners, dim= 1)
-        y_min = y_min.reshape(-1, 1)
-        x_max, _ = torch.max(x_corners, dim= 1)
-        x_max = x_max.reshape(-1, 1)
-        y_max, _ = torch.max(y_corners, dim= 1)
-        y_max = y_max.reshape(-1, 1)
-        
-        new_boxes = torch.cat((x_min, y_min, x_max, y_max), dim= 1)
-        
-        scale_x = new_image.width / w
-        scale_y = new_image.height / h
-        
-        #Resize new image to (w, h)
-        new_image = new_image.resize((500, 333))
-        
-        #Resize boxes
-        new_boxes /= torch.Tensor([scale_x, scale_y, scale_x, scale_y])
-        new_boxes[:, 0] = torch.clamp(new_boxes[:, 0], 0, w)
-        new_boxes[:, 1] = torch.clamp(new_boxes[:, 1], 0, h)
-        new_boxes[:, 2] = torch.clamp(new_boxes[:, 2], 0, w)
-        new_boxes[:, 3] = torch.clamp(new_boxes[:, 3], 0, h)
+    def __str__(self):
+        s = "Custom Dataset for Object Detection\n"
+        line = "-------------------------------\n"
+        s1 = "Number of samples: " + str(len(self.coco.anns)) + '\n'
+        s2 = "Number of classes: " + str(len(self.labels)) + '\n'
+        return s + line + s1 + s2
 
-        return {'img': new_image, 
-                'annot': new_boxes}
-
-class Augmenter(object):
-    """Convert ndarrays in sample to Tensors."""
-
-    def __call__(self, sample, flip_x=0.5):
-        if np.random.rand() < flip_x:
-            image, annots = sample['img'], sample['annot']
-            image = image[:, ::-1, :]
-
-            rows, cols, channels = image.shape
-
-            x1 = annots[:, 0].copy()
-            x2 = annots[:, 2].copy()
-
-            x_tmp = x1.copy()
-
-            annots[:, 0] = cols - x2
-            annots[:, 2] = cols - x_tmp
-
-            sample = {'img': image, 'annot': annots}
-
-        return sample
-
-
-class Normalizer(object):
-
-    def __init__(self, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]):
-        self.mean = np.array([[mean]])
-        self.std = np.array([[std]])
-
-    def __call__(self, sample):
-        image, annots = sample['img'], sample['annot']
-
-        return {'img': ((image.astype(np.float32) - self.mean) / self.std), 'annot': annots}

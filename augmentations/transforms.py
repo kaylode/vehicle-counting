@@ -811,7 +811,6 @@ class Cutout(object):
                 'mask': mask
             }
 
-
 class RandAugment(object):
     #https://github.com/ildoonet/pytorch-randaugment/blob/master/RandAugment/augmentations.py
     def ShearX(self, img, v):  # [-0.3, 0.3]

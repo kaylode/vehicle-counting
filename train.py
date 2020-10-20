@@ -5,7 +5,7 @@ import os
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
-
+from utils.utils import init_weights
 
 def train(args, config):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -21,7 +21,7 @@ def train(args, config):
         Rotation(),
         ToTensor(),
         Cutout(0.05),
-        Normalize()
+        Normalize(box_transform=False)
     ])
 
     val_transforms = Compose([
