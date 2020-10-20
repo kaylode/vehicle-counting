@@ -45,8 +45,8 @@ this repo
 - Split the video into frames using ***preprocess.py***
 - To manually label, use [labelme](https://github.com/wkentaro/labelme)
 - Download all pretrained weights from above
-- Use EfficientDet for vehicle detection task, finetune the model on the labeled dataset using ***train.py***
-- Use DeepSORT for car tracking, not need to retrain this model, only inference
+- Use [EfficientDet](https://arxiv.org/abs/1911.09070) for vehicle detection task, finetune the model on the labeled dataset using ***train.py***
+- Use [DeepSORT](https://arxiv.org/abs/1703.07402) for car tracking, not need to retrain this model, only inference
 
 ***Inference***
 - Use trained detection model to detect vehicle in the video using ***detect.py***, all the bounding boxes, classes prediction will be saved to json files
