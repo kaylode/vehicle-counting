@@ -17,14 +17,14 @@ import cv2
 
 
 class CocoDataset(Dataset):
-    def __init__(self, root_dir, set='train2017', types='train', transforms=None):
+    def __init__(self, root_dir, ann_path, transforms=None):
 
         self.root_dir = root_dir
-        self.set_name = set
+        self.ann_path = ann_path
         self.transforms = transforms
         self.mode = 'xyxy'
         
-        self.coco = COCO(os.path.join(self.root_dir, 'annotations', 'instances_' + types + '.json'))
+        self.coco = COCO(ann_path)
         self.image_ids = self.coco.getImgIds()
 
         self.load_classes()
@@ -69,7 +69,7 @@ class CocoDataset(Dataset):
 
     def load_image(self, image_index):
         image_info = self.coco.loadImgs(self.image_ids[image_index])[0]
-        path = os.path.join(self.root_dir, self.set_name, image_info['file_name'])
+        path = os.path.join(self.root_dir, image_info['file_name'])
   
         img = Image.open(path).convert('RGB')
     

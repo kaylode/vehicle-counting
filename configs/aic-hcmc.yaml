@@ -1,7 +1,9 @@
 settings:
   project_name: aic-hcmc2020  # also the folder name of the dataset that under data_path folder
-  train_set: images
-  val_set: images
+  train_imgs: images
+  val_imgs: images
+  train_anns: annotations/instances_train.json
+  val_anns: annotations/instances_val.json
 
   image_size: [512, 512]
 
