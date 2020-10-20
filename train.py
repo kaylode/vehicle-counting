@@ -31,11 +31,15 @@ def train(args, config):
     ])
 
     #input_sizes = [512, 640, 768, 896, 1024, 1280, 1280, 1536, 1536]
-    trainset = CocoDataset(root_dir=os.path.join('datasets', config.project_name), set= config.train_set, types= 'train',
-                               transforms=train_transforms)
+    trainset = CocoDataset(
+        root_dir = os.path.join('datasets', config.project_name, config.train_imgs),
+        ann_path = os.path.join('datasets', config.project_name, config.train_anns),
+        transforms=train_transforms)
     
-    valset = CocoDataset(root_dir=os.path.join('datasets', config.project_name), set= config.val_set, types= 'val',
-                          transforms=val_transforms)
+    valset = CocoDataset(
+        root_dir=os.path.join('datasets', config.project_name, config.val_imgs), 
+        ann_path = os.path.join('datasets', config.project_name, config.val_anns),
+        transforms=val_transforms)
     
     trainloader = DataLoader(trainset, batch_size=args.batch_size, shuffle = True, drop_last= True, collate_fn=trainset.collate_fn, num_workers= args.num_workers)
     valloader = DataLoader(valset, batch_size=args.batch_size, shuffle = False, drop_last= True, collate_fn=valset.collate_fn, num_workers= args.num_workers)
@@ -66,7 +70,7 @@ def train(args, config):
         args.saved_path = os.path.join(args.saved_path, config.project_name)
 
     if args.log_path is not None:
-        args.log_path = os.path.join(args.saved_path, config.project_name)
+        args.log_path = os.path.join(args.log_path, config.project_name)
 
     model = Detector(
                     n_classes=NUM_CLASSES,
@@ -108,10 +112,10 @@ if __name__ == '__main__':
     parser.add_argument('--num_epochs', type=int, default=50)
     parser.add_argument('--val_interval', type=int, default=1, help='Number of epoches between valing phases')
     parser.add_argument('--save_interval', type=int, default=1500, help='Number of steps between saving')
-    parser.add_argument('--log_path', type=str, default=None)
+    parser.add_argument('--log_path', type=str, default='loggers/runs')
     parser.add_argument('--resume', type=str, default=None,
                         help='whether to load weights from a checkpoint, set None to initialize, set \'last\' to load last checkpoint')
-    parser.add_argument('--saved_path', type=str, default=None)
+    parser.add_argument('--saved_path', type=str, default='weights')
 
     args = parser.parse_args()
     config = Config(os.path.join('configs',args.config))
