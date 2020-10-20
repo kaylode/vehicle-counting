@@ -147,8 +147,8 @@ class Trainer(nn.Module):
 
         end_time = time.time()
         running_time = end_time - start_time
-        metric_dict.update(metrics)
-        self.model.reset_metrics()
+        #metric_dict.update(metrics)
+        #self.model.reset_metrics()
 
         for key in epoch_loss.keys():
             epoch_loss[key] /= len(self.valloader)
@@ -157,13 +157,13 @@ class Trainer(nn.Module):
         print()
         print("[{}|{}] || {} || Time: {:10.4f} s".format(self.epoch, self.num_epochs, loss_string, running_time))
 
-        for metric, score in metric_dict.items():
-            print(metric +': ' + str(score), end = ' | ')
-        print('==')
+        #for metric, score in metric_dict.items():
+            #print(metric +': ' + str(score), end = ' | ')
+        #print('==')
         print('==========================================================================')
 
         log_dict = {"Validation Loss/Epoch" : epoch_loss['T'] / len(self.valloader),}
-        log_dict.update(metric_dict)
+        #log_dict.update(metric_dict)
         self.logging(log_dict)
         
     

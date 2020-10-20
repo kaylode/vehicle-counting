@@ -38,7 +38,7 @@ def main(args):
     path = args.path
     min_conf = args.min_conf
     min_iou = args.min_iou
-    coef = args.coef
+    coef = args.c
     batch_size = args.batch_size
     weight_path = args.weight
     output_vid = args.output
@@ -183,7 +183,7 @@ if __name__ == '__main__':
                         help='minimum confidence for an object to be detect')
     parser.add_argument('--min_iou', type=float, default=0.3,
                         help='minimum iou threshold for non max suppression')
-    parser.add_argument('--coef', type=int, default = 0,
+    parser.add_argument('-c', type=int, default = 2,
                         help='version of EfficentDet')
 
     parser.add_argument('--weight', type=str, default = 'weights/efficientdet-d2.pth',
