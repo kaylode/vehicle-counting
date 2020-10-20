@@ -49,6 +49,8 @@ def load_checkpoint(model, path):
         model.model.load_state_dict(state["model"])
         model.optimizer.load_state_dict(state["optimizer"])
     except KeyError:
-        model.model.load_state_dict(state)
-   
+        try:
+            ret = model.model.load_state_dict(state, strict=False)
+        except RuntimeError as e:
+            print(f'[Warning] Ignoring {e}')
     print("Loaded Successfully!")
