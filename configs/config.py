@@ -9,4 +9,4 @@ class Config():
         try:
             return self._attr[attr]
         except KeyError:
-            raise AttributeError
+            return None

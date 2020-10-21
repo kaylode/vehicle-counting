@@ -25,3 +25,8 @@ settings:
     shear: 0.2
     cutout: 0.05
     rotation: 0 # function has bugs
+    colorjitter: 
+      brightness: 10
+      contrast: 10
+      saturation: 0
+      hue: 0
