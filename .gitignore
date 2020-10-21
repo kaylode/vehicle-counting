@@ -66,3 +66,5 @@ models/tpu_model.py
 *.ipynb
 *.png
 *.txt
+*.mp4
+*.zip
