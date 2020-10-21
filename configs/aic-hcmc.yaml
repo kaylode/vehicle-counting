@@ -1,5 +1,5 @@
 settings:
-  project_name: aic-hcmc2020  # also the folder name of the dataset that under data_path folder
+  project_name: aic-hcmc2020  # also the folder name of the dataset that under datasets folder
   train_imgs: images
   val_imgs: images
   train_anns: annotations/instances_train.json
@@ -17,9 +17,10 @@ settings:
 
   # must match your dataset's category_id.
   # category_id is one_indexed,
-  # for example, index of 'car' here is 2, while category_id of is 3
+  # for example, index of 'car' here is 1, while category_id of is 2
   obj_list: ['motorcycle', 'car', 'bus', 'truck']
 
+  # custom augmentations
   augmentations:
     horizontal_flip: 0.5
     shear: 0.2
