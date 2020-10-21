@@ -18,7 +18,6 @@ def train(args, config):
         Resize(size = config.image_size),
         RandomHorizontalFlip(0.5),
         RandomShear(0.2),
-        Rotation(),
         ToTensor(),
         Cutout(0.05),
         Normalize(box_transform=False)
@@ -27,7 +26,7 @@ def train(args, config):
     val_transforms = Compose([
         Resize(size = config.image_size),
         ToTensor(),
-        Normalize()
+        Normalize(box_transform=False)
     ])
 
     #input_sizes = [512, 640, 768, 896, 1024, 1280, 1280, 1536, 1536]
