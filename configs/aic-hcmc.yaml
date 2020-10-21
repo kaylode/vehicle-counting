@@ -5,7 +5,7 @@ settings:
   train_anns: annotations/instances_train.json
   val_anns: annotations/instances_val.json
 
-  image_size: [512, 512]
+  image_size: [768, 768]
 
   # mean and std in RGB order, actually this part should remain unchanged as long as your dataset is similar to coco.
   mean: [0.485, 0.456, 0.406]
@@ -19,3 +19,9 @@ settings:
   # category_id is one_indexed,
   # for example, index of 'car' here is 2, while category_id of is 3
   obj_list: ['motorcycle', 'car', 'bus', 'truck']
+
+  augmentations:
+    horizontal_flip: 0.5
+    shear: 0.2
+    cutout: 0.05
+    rotation: 0 # function has bugs

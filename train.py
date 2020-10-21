@@ -14,20 +14,8 @@ def train(args, config):
     else:
         torch.manual_seed(42)
 
-    train_transforms = Compose([
-        Resize(size = config.image_size),
-        RandomHorizontalFlip(0.5),
-        RandomShear(0.2),
-        ToTensor(),
-        Cutout(0.05),
-        Normalize(box_transform=False)
-    ])
-
-    val_transforms = Compose([
-        Resize(size = config.image_size),
-        ToTensor(),
-        Normalize(box_transform=False)
-    ])
+    train_transforms = get_augmentation(config, types = 'train')
+    val_transforms = get_augmentation(config, types = 'val')
 
     #input_sizes = [512, 640, 768, 896, 1024, 1280, 1280, 1536, 1536]
     trainset = CocoDataset(
@@ -40,8 +28,23 @@ def train(args, config):
         ann_path = os.path.join('datasets', config.project_name, config.val_anns),
         transforms=val_transforms)
     
-    trainloader = DataLoader(trainset, batch_size=args.batch_size, shuffle = True, drop_last= True, collate_fn=trainset.collate_fn, num_workers= args.num_workers)
-    valloader = DataLoader(valset, batch_size=args.batch_size, shuffle = False, drop_last= True, collate_fn=valset.collate_fn, num_workers= args.num_workers)
+    trainloader = DataLoader(
+        trainset, 
+        batch_size=args.batch_size, 
+        shuffle = True, 
+        drop_last= True, 
+        collate_fn=trainset.collate_fn, 
+        num_workers= args.num_workers, 
+        pin_memory=True)
+
+    valloader = DataLoader(
+        valset, 
+        batch_size=args.batch_size, 
+        shuffle = False, 
+        drop_last= True, 
+        collate_fn=valset.collate_fn, 
+        num_workers= args.num_workers, 
+        pin_memory=True)
     
 
     NUM_CLASSES = len(config.obj_list)
@@ -49,9 +52,6 @@ def train(args, config):
     net = EfficientDetBackbone(num_classes=NUM_CLASSES, compound_coef=args.compound_coef,
                                  ratios=eval(config.anchors_ratios), scales=eval(config.anchors_scales))
     
-
-        
-
     # freeze backbone if train head_only
     if args.head_only:
         def freeze_backbone(m):
