@@ -1,6 +1,6 @@
 # Vehicle Counting/Tracking using EfficientDet + DeepSORT (Pytorch)
 
-- Source code of ***#Team 059*** for AI Challenge of Ho Chi Minh City 2020
+- Source code of ***#Team 059*** for AI City Challenge of Ho Chi Minh City 2020
   - Task info: http://aichallenge.hochiminhcity.gov.vn/huong-dan-nhom-1
   - Leaderboard: http://aichcmc.ml/
 
@@ -36,7 +36,7 @@ this repo
 │           
 ```
 # Dataset:
-- AIC-HCMC-2020: [link](https://drive.google.com/file/d/1_OTum0QExyXYrlvrb6qIRJEL86ex0oZD/view?usp=sharing)
+- AIC-HCMC-2020: [link](https://drive.google.com/file/d/1M0GYLmeOJihZN_JFTAEhA_7XEwzlHKUM/view?usp=sharing)
 
 # Pretrained weights:
 - Download pretrained EfficientDet from [original repo](https://github.com/zylo117/Yet-Another-EfficientDet-Pytorch)
