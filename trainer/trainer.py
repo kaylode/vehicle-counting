@@ -39,7 +39,7 @@ class Trainer(nn.Module):
         self.epoch = start_epoch
         self.start_iter = start_iter % len(self.trainloader)
 
-        print(f'===========================START TRAINING AT [{self.epoch}|{self.num_epochs}][{self.start_iter}|{self.num_iters}]=================================')
+        print(f'===========================START TRAINING AT [{self.epoch}|{self.num_epochs}][{start_iter}|{self.num_iters}]=================================')
         for epoch in range(self.epoch, self.num_epochs+1):
             try:
                 self.epoch = epoch
@@ -55,7 +55,7 @@ class Trainer(nn.Module):
                 
 
             except KeyboardInterrupt:   
-                self.checkpoint.save(self.model, epoch = self.epoch, iters = self.iter, interrupted = True)
+                self.checkpoint.save(self.model, epoch = self.epoch, iters = self.iters, interrupted = True)
                 print("Stop training, checkpoint saved...")
                 break
 
@@ -68,11 +68,6 @@ class Trainer(nn.Module):
         running_time = 0
 
         for i, batch in enumerate(self.trainloader):
-            if self.start_iter != 0:
-                if i < self.start_iter:
-                    continue
-                else:
-                    self.start_iter = 0
             self.optimizer.zero_grad()
             start_time = time.time()
             loss, loss_dict = self.model.training_step(batch)
@@ -97,7 +92,7 @@ class Trainer(nn.Module):
                     running_loss[key] = value
 
             running_time += end_time-start_time
-            self.iters = len(self.trainloader)*self.epoch+i+1
+            self.iters = self.start_iter + len(self.trainloader)*self.epoch + i + 1
             if self.iters % self.print_per_iter == 0:
                 
                 for key in running_loss.keys():
