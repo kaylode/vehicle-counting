@@ -39,7 +39,7 @@ class Trainer(nn.Module):
         self.epoch = start_epoch
         self.start_iter = start_iter % len(self.trainloader)
 
-        print(f'===========================START TRAINING AT [{self.epoch}|{self.num_epochs}][{start_iter}|{self.num_iters}]=================================')
+        print(f'===========================START TRAINING=================================')
         for epoch in range(self.epoch, self.num_epochs+1):
             try:
                 self.epoch = epoch
