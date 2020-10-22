@@ -36,7 +36,7 @@ this repo
 │           
 ```
 # Dataset:
-- AIC-HCMC-2020: [link](https://drive.google.com/file/d/1M0GYLmeOJihZN_JFTAEhA_7XEwzlHKUM/view?usp=sharing)
+- AIC-HCMC-2020: [link](https://drive.google.com/drive/folders/1FttIEk5UsR3xLlRfphj_MlGWOWEVtAhz?usp=sharing)
 
 # Pretrained weights:
 - Download pretrained EfficientDet from [original repo](https://github.com/zylo117/Yet-Another-EfficientDet-Pytorch)
