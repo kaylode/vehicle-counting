@@ -25,9 +25,7 @@ class Trainer(nn.Module):
         self.metrics = model.metrics #list of metrics
         self.set_attribute(kwargs)
         
-        
-
-    def fit(self, num_epochs = 10 ,print_per_iter = None):
+    def fit(self, start_epoch = 0, start_iter = 0, num_epochs = 10 ,print_per_iter = None):
         self.num_epochs = num_epochs
         self.num_iters = (num_epochs+1) * len(self.trainloader)
         if self.checkpoint is None:
@@ -37,9 +35,12 @@ class Trainer(nn.Module):
             self.print_per_iter = print_per_iter
         else:
             self.print_per_iter = int(len(self.trainloader)/10)
-     
-        print('===========================START TRAINING=================================')      
-        for epoch in range(self.num_epochs+1):
+        
+        self.epoch = start_epoch
+        self.start_iter = start_iter % len(self.trainloader)
+
+        print('===========================START TRAINING AT [{self.epoch}|{self.num_epochs}][{self.start_iter}|{self.num_iters}]=================================')
+        for epoch in range(self.epoch, self.num_epochs+1):
             try:
                 self.epoch = epoch
                 self.training_epoch()
@@ -54,7 +55,7 @@ class Trainer(nn.Module):
                 
 
             except KeyboardInterrupt:   
-                self.checkpoint.save(self.model, epoch = epoch, interrupted = True)
+                self.checkpoint.save(self.model, epoch = self.epoch, iters = self.iter, interrupted = True)
                 print("Stop training, checkpoint saved...")
                 break
 
@@ -66,7 +67,12 @@ class Trainer(nn.Module):
         running_loss = {}
         running_time = 0
 
-        for i, batch in enumerate(self.trainloader):
+        for i, batch in enumerate(tqdm(self.trainloader)):
+            if self.start_iter != 0:
+                if i < self.start_iter:
+                    continue
+                else:
+                    self.start_iter = 0
             self.optimizer.zero_grad()
             start_time = time.time()
             loss, loss_dict = self.model.training_step(batch)
@@ -91,20 +97,20 @@ class Trainer(nn.Module):
                     running_loss[key] = value
 
             running_time += end_time-start_time
-            iters = len(self.trainloader)*self.epoch+i+1
-            if iters % self.print_per_iter == 0:
+            self.iters = len(self.trainloader)*self.epoch+i+1
+            if self.iters % self.print_per_iter == 0:
                 
                 for key in running_loss.keys():
                     running_loss[key] /= self.print_per_iter
                     running_loss[key] = np.round(running_loss[key], 5)
                 loss_string = '{}'.format(running_loss)[1:-1].replace("'",'').replace(",",' ||')
-                print("[{}|{}] [{}|{}] || {} || Time: {:10.4f}s".format(self.epoch, self.num_epochs, iters, self.num_iters,loss_string, running_time))
+                print("[{}|{}] [{}|{}] || {} || Time: {:10.4f}s".format(self.epoch, self.num_epochs, self.iters, self.num_iters,loss_string, running_time))
                 self.logging({"Training Loss/Batch" : running_loss['T']/ self.print_per_iter,})
                 running_loss = {}
                 running_time = 0
 
-            if (iters % self.checkpoint.save_per_iter == 0 or iters == self.num_iters - 1):
-                self.checkpoint.save(self.model, epoch = self.epoch, iters=iters)
+            if (self.iters % self.checkpoint.save_per_iter == 0 or self.iters == self.num_iters - 1):
+                self.checkpoint.save(self.model, epoch = self.epoch, iters=self.iters)
 
     def inference_batch(self, testloader):
         self.model.eval()

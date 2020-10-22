@@ -81,9 +81,11 @@ def train(args, config):
 
     if args.resume is not None:                
         load_checkpoint(model, args.resume)
+        start_epoch, start_iter = get_epoch_iters(args.resume)
     else:
         print('[Info] initialize weights')
         init_weights(model.model)
+        start_epoch, start_iter = 0, 0
 
     trainer = Trainer(model,
                      trainloader, 
@@ -94,7 +96,7 @@ def train(args, config):
                      evaluate_per_epoch = args.val_interval)
 
     print(trainer)
-    trainer.fit(num_epochs=args.num_epochs, print_per_iter=10)
+    trainer.fit(start_epoch = start_epoch, start_iter = start_iter, num_epochs=args.num_epochs, print_per_iter=10)
 
  
 

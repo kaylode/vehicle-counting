@@ -54,3 +54,18 @@ def load_checkpoint(model, path):
         except RuntimeError as e:
             print(f'[Warning] Ignoring {e}')
     print("Loaded Successfully!")
+
+def get_epoch_iters(path):
+    path = os.path.basename(path)
+    tokens = path[:-4].split('_')
+    try:
+        if tokens[-1] == 'interrupted':
+            epoch_idx = int(tokens[-3])
+            iter_idx = int(tokens[-2])
+        else:
+            epoch_idx = int(tokens[-2])
+            iter_idx = int(tokens[-1])
+    except:
+        return 0, 0
+
+    return epoch_idx, iter_idx
