@@ -39,7 +39,7 @@ class Trainer(nn.Module):
         self.epoch = start_epoch
         self.start_iter = start_iter % len(self.trainloader)
 
-        print('===========================START TRAINING AT [{self.epoch}|{self.num_epochs}][{self.start_iter}|{self.num_iters}]=================================')
+        print(f'===========================START TRAINING AT [{self.epoch}|{self.num_epochs}][{self.start_iter}|{self.num_iters}]=================================')
         for epoch in range(self.epoch, self.num_epochs+1):
             try:
                 self.epoch = epoch
@@ -67,7 +67,7 @@ class Trainer(nn.Module):
         running_loss = {}
         running_time = 0
 
-        for i, batch in enumerate(tqdm(self.trainloader)):
+        for i, batch in enumerate(self.trainloader):
             if self.start_iter != 0:
                 if i < self.start_iter:
                     continue
