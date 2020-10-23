@@ -64,7 +64,7 @@ def main(args, config):
     
  
     num_frame = len(os.listdir(path))
-    frame_names = [str(i).zfill(5)+'.json' for i in range(13500)]
+    frame_names = [str(i).zfill(5)+'.json' for i in range(5892)]
     idx_frame = int(frame_names[0][:-5])
     det_paths = [os.path.join(path, i) for i in frame_names]
    

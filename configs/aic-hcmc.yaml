@@ -23,8 +23,8 @@ settings:
   # custom augmentations
   augmentations:
     horizontal_flip: 0.5
-    shear: 0.2
-    cutout: 0.05
+    shear: 0
+    cutout: 0
     rotation: 0 # function has bugs
     colorjitter: 
       brightness: 10

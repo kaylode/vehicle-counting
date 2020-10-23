@@ -5,7 +5,16 @@ settings:
       MAX_DIST: 0.2
       MIN_CONFIDENCE: 0.3
       NMS_MAX_OVERLAP: 0.5
-      MAX_IOU_DISTANCE: 0.9 
+      MAX_IOU_DISTANCE: 0.7
       MAX_AGE: 40
-      N_INIT: 7
+      N_INIT: 3
+      NN_BUDGET: 60
+    cam_02:
+      REID_CKPT: "./models/deepsort/deep/checkpoint/ckpt.t7"
+      MAX_DIST: 0.2
+      MIN_CONFIDENCE: 0.3
+      NMS_MAX_OVERLAP: 0.5
+      MAX_IOU_DISTANCE: 0.7
+      MAX_AGE: 40
+      N_INIT: 3
       NN_BUDGET: 60

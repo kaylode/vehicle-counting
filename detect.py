@@ -113,7 +113,7 @@ def main(args):
     obj_track = {}
 
     frame_idx = 0
-    with tqdm(total=13500) as pbar:
+    with tqdm(total=5892) as pbar:
         while(vidcap.isOpened()):
             ims = []
             for b in range(batch_size):
@@ -198,7 +198,7 @@ if __name__ == '__main__':
     parser.add_argument('--frame_start', type=int, default = 0,
                         help='start from frame')
 
-    parser.add_argument('--frame_end', type=int, default = 13500,
+    parser.add_argument('--frame_end', type=int, default = 5892,
                         help='end at frame')
 
     parser.add_argument('--saved_path', type=str, default = 'results/detection',
