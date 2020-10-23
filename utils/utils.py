@@ -249,7 +249,7 @@ def preprocess_video(*frame_from_video, max_size=512, mean=(0.406, 0.456, 0.485)
     return ori_imgs, framed_imgs, framed_metas
 
 
-def postprocess(x, anchors, regression, classification, regressBoxes, clipBoxes, threshold, iou_threshold, vehicle_id=None):
+def postprocess(x, anchors, regression, classification, regressBoxes, clipBoxes, threshold, iou_threshold):
     transformed_anchors = regressBoxes(anchors, regression)
     transformed_anchors = clipBoxes(transformed_anchors, x)
     scores = torch.max(classification, dim=2, keepdim=True)[0]
@@ -269,14 +269,6 @@ def postprocess(x, anchors, regression, classification, regressBoxes, clipBoxes,
         scores_per = scores[i, scores_over_thresh[i, :], ...]                               # [84, 1]
         scores_, classes_ = classification_per.max(dim=0)                                   # [84]
 
-        """# Only get class in vehicle id
-        mask = torch.Tensor([1 if int(j) in vehicle_id.keys() else 0 for j in classes_])
-        transformed_anchors_per = transformed_anchors_per[mask==1, :]
-        scores_per = scores_per[mask==1, :]
-        classes_ = classes_[mask==1]
-        scores_ = scores_[mask==1]"""
-
-        
         #anchors_nms_idx = batched_nms(transformed_anchors_per, scores_per[:, 0], classes_, iou_threshold=iou_threshold)
         anchors_nms_idx = torchvision.ops.nms(transformed_anchors_per, scores_per[:, 0], iou_threshold=iou_threshold)
         if anchors_nms_idx.shape[0] != 0:

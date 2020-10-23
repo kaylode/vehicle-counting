@@ -3,9 +3,13 @@ import torch
 import torchvision.models as models
 import torch.nn as nn
 from tqdm import tqdm
-from torchvision import transforms
+
+import sys
+sys.path.append('..')
 from .backbone import EfficientDetBackbone
 from losses.focalloss import FocalLoss
+from .efficientdet.utils import BBoxTransform, ClipBoxes
+from utils.utils import postprocess
 
 class Detector(BaseModel):
     def __init__(self, model, n_classes, **kwargs):
@@ -42,19 +46,16 @@ class Detector(BaseModel):
     
     def inference_step(self, batch):
         inputs = batch["imgs"]
+        labels = batch['labels']
 
         if self.device:
             inputs = inputs.to(self.device)
+            labels = labels.to(self.device)
 
-        loc_preds, cls_preds = self(inputs)
+        _, regression, classification, anchors = self.model(inputs)
         
-        #   TODO:
-        # - add batch post-process
 
-        outputs = self.model.detect(loc_preds, cls_preds)#[self.model.detect(i,j) for i,j in zip(loc_preds,cls_preds)]
-            
-        
-        return outputs
+        return regression, classification, anchors
 
     def evaluate_step(self, batch):
         inputs = batch["imgs"]
