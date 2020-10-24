@@ -69,8 +69,12 @@ class ToPILImage(object):
             PIL Image: Image converted to PIL Image.
 
         """
+        if isinstance(img, np.ndarray):
+            img = Image.fromarray((img*255).astype(np.uint8))
+        elif isinstance(img, torch.Tensor):
+            img = TF.to_pil_image(img, self.mode)
         return {
-                'img': TF.to_pil_image(img, self.mode),
+                'img': img,
                 'box': box,
                 'label': label,
                 'mask': mask
@@ -150,17 +154,18 @@ class Resize(object):
                     + size: image new size
         """
         def __init__(self, size = (224,224), **kwargs):
+            #size: width,height
             self.size = size
 
         def __call__(self, img, label=None, box = None,  mask = None, **kwargs):
             # Resize image
             new_img = img.resize(self.size, Image.BILINEAR)
         
-
+            
             if box is not None:
                 np_box = np.array(box)
                 old_dims = np.array([img.width, img.height, img.width, img.height])
-                new_dims = np.array([self.size[1], self.size[0], self.size[1], self.size[0]])
+                new_dims = np.array([self.size[0], self.size[1], self.size[0], self.size[1]])
 
                 # Resize bounding box and round down
                 box = np.floor((np_box / old_dims) * new_dims)
