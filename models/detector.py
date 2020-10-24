@@ -9,7 +9,6 @@ sys.path.append('..')
 from .backbone import EfficientDetBackbone
 from losses.focalloss import FocalLoss
 from .efficientdet.utils import BBoxTransform, ClipBoxes
-from utils.utils import postprocess
 
 class Detector(BaseModel):
     def __init__(self, model, n_classes, **kwargs):
@@ -44,18 +43,30 @@ class Detector(BaseModel):
         return loss
 
     
-    def inference_step(self, batch):
+    def inference_step(self, batch, threshold = 0.2, iou_threshold=0.2):
         inputs = batch["imgs"]
-        labels = batch['labels']
 
         if self.device:
             inputs = inputs.to(self.device)
-            labels = labels.to(self.device)
 
         _, regression, classification, anchors = self.model(inputs)
-        
+        regression = regression.detach()
+        classification = classification.detach()
+        anchors = anchors.detach()
 
-        return regression, classification, anchors
+        regressBoxes = BBoxTransform()
+        clipBoxes = ClipBoxes()
+        outputs = self.model.detect(
+            inputs, 
+            anchors, 
+            regression, 
+            classification, 
+            regressBoxes, 
+            clipBoxes, 
+            threshold = threshold, 
+            iou_threshold=iou_threshold)
+
+        return outputs
 
     def evaluate_step(self, batch):
         inputs = batch["imgs"]

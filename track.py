@@ -89,10 +89,10 @@ def main(args, config):
             print("Tracked {} frames".format(num_frame))
             break
         
-        bbox_xyxy = np.array(objs['rois'])
+        bbox_xyxy = np.array(objs['bboxes'])
  
         cls_conf = np.array(objs['scores'])
-        cls_ids = np.array(objs['class_ids'])
+        cls_ids = np.array(objs['classes'])
 
         # Check only bbox in roi
         mask = np.array([1 if check_bbox_intersect_polygon(polygons,i.tolist()) else 0 for i in bbox_xyxy])

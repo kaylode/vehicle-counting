@@ -7,6 +7,8 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader
 from utils.utils import init_weights
+from models.efficientdet.utils import BBoxTransform, ClipBoxes
+from utils.utils import *
 
 frame_width = 1280
 frame_height = 720
@@ -33,7 +35,11 @@ def main(args, config):
         os.mkdir(args.saved_path +'/{}'.format(video_name))
 
     val_transforms = get_augmentation(config, types = 'val')
-
+    retransforms = Compose([
+        Denormalize(box_transform=False),
+        ToPILImage(),
+        Resize(size = (frame_width, frame_height))
+    ])
     NUM_CLASSES = len(config.obj_list)
     net = EfficientDetBackbone(num_classes=NUM_CLASSES, compound_coef=args.c,
                                  ratios=eval(config.anchors_ratios), scales=eval(config.anchors_scales))
@@ -45,6 +51,7 @@ def main(args, config):
                     optimizer= torch.optim.Adam,
                     optim_params = {'lr': 0.1},     
                     device = device)
+    model.eval()
 
     if args.weight is not None:                
         load_checkpoint(model, args.weight)
@@ -63,32 +70,36 @@ def main(args, config):
                 success, frame = vidcap.read()
 
             ims = []
+            im_shows = []
             for b in range(args.batch_size):
-                success, frame = vidcap.read()
-                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                success, frame_ = vidcap.read()
+                frame = cv2.cvtColor(frame_, cv2.COLOR_BGR2RGB)
                 frame = Image.fromarray(frame)
 
                 if not success:
                     break
                 ims.append(val_transforms(frame))
+                im_shows.append(frame_)
             
-            batch = torch.stack([i['img'] for i in ims])
 
-         
+
             with torch.no_grad():
-
-               
-                regressBoxes = BBoxTransform()
-                clipBoxes = ClipBoxes()
-                out = postprocess(
-                    x,
-                    anchors, regression, classification,
-                    regressBoxes, clipBoxes,
-                    threshold, iou_threshold)
-    
-                del regression
-                del classification
-                del anchors
+                batch = {'imgs': torch.stack([i['img'] for i in ims]).to(device)}
+                outs = model.inference_step(batch, args.min_conf, args.min_iou)
+                outs = postprocessing(outs, batch['imgs'].cpu()[0], retransforms)
+                for idx, out in enumerate(outs):
+                    bbox_xyxy, cls_conf, cls_ids = out['bboxes'], out['scores'], out['classes']
+                    
+                    out_dict = {
+                        'bboxes': bbox_xyxy.tolist(),
+                        'classes': cls_ids.tolist(),
+                        'scores': cls_conf.tolist()
+                    }
+                    with open(args.saved_path+'/{}/{}'.format(video_name,str(frame_idx).zfill(5)+'.json'), 'w') as f:
+                        json.dump(out_dict, f)
+                    frame_idx+=1
+                display_img(outs, im_shows, imshow=False, outvid=outvid)
+            pbar.update(args.batch_size)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Inference AIC Challenge Dataset')

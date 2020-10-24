@@ -13,6 +13,9 @@ from torch.nn.init import _calculate_fan_in_and_fan_out, _no_grad_normal_
 from torchvision.ops.boxes import batched_nms
 from .bb_polygon import is_bounding_box_intersect
 import torchvision
+import sys
+sys.path.append('..')
+
 obj_list = ['motorcycle', 'car', 'bus', 'truck']
 
 
@@ -179,20 +182,17 @@ def find_jaccard_overlap(set_1, set_2, order='xyxy'):
     return intersection / union  # (n1, n2)
 
 
-def invert_affine(metas: Union[float, list, tuple], preds):
-    for i in range(len(preds)):
-        if len(preds[i]['rois']) == 0:
-            continue
-        else:
-            if metas is float:
-                preds[i]['rois'][:, [0, 2]] = preds[i]['rois'][:, [0, 2]] / metas
-                preds[i]['rois'][:, [1, 3]] = preds[i]['rois'][:, [1, 3]] / metas
-            else:
-                new_w, new_h, old_w, old_h, padding_w, padding_h = metas[i]
-                preds[i]['rois'][:, [0, 2]] = preds[i]['rois'][:, [0, 2]] / (new_w / old_w)
-                preds[i]['rois'][:, [1, 3]] = preds[i]['rois'][:, [1, 3]] / (new_h / old_h)
-    return preds
+def postprocessing(outs, imgs, retransforms = None):
+    for item in outs:
+        
+        boxes_out = item['bboxes']
+        boxes_out_xywh = change_box_order(boxes_out, order = 'xyxy2xywh')
+        new_boxes = retransforms(img = imgs, box=boxes_out_xywh)['box']
+        new_boxes = change_box_order(new_boxes, order = 'xywh2xyxy')
+        item['bboxes'] = new_boxes
 
+    return outs
+        
 
 def aspectaware_resize_padding(image, width, height, interpolation=None, means=None):
     old_h, old_w, c = image.shape
@@ -249,46 +249,7 @@ def preprocess_video(*frame_from_video, max_size=512, mean=(0.406, 0.456, 0.485)
     return ori_imgs, framed_imgs, framed_metas
 
 
-def postprocess(x, anchors, regression, classification, regressBoxes, clipBoxes, threshold, iou_threshold):
-    transformed_anchors = regressBoxes(anchors, regression)
-    transformed_anchors = clipBoxes(transformed_anchors, x)
-    scores = torch.max(classification, dim=2, keepdim=True)[0]
-    scores_over_thresh = (scores > threshold)[:, :, 0]
-    out = []
-    for i in range(x.shape[0]):
-        if scores_over_thresh[i].sum() == 0:
-            out.append({
-                'rois': np.array(()),
-                'class_ids': np.array(()),
-                'scores': np.array(()),
-            })
-            continue
 
-        classification_per = classification[i, scores_over_thresh[i, :], ...].permute(1, 0) # [90, 84]
-        transformed_anchors_per = transformed_anchors[i, scores_over_thresh[i, :], ...]     # [84, 4]
-        scores_per = scores[i, scores_over_thresh[i, :], ...]                               # [84, 1]
-        scores_, classes_ = classification_per.max(dim=0)                                   # [84]
-
-        #anchors_nms_idx = batched_nms(transformed_anchors_per, scores_per[:, 0], classes_, iou_threshold=iou_threshold)
-        anchors_nms_idx = torchvision.ops.nms(transformed_anchors_per, scores_per[:, 0], iou_threshold=iou_threshold)
-        if anchors_nms_idx.shape[0] != 0:
-            classes_ = classes_[anchors_nms_idx]
-            scores_ = scores_[anchors_nms_idx]
-            boxes_ = transformed_anchors_per[anchors_nms_idx, :]
-
-            out.append({
-                'rois': boxes_.cpu().numpy(),
-                'class_ids': classes_.cpu().numpy(),
-                'scores': scores_.cpu().numpy(),
-            })
-        else:
-            out.append({
-                'rois': np.array(()),
-                'class_ids': np.array(()),
-                'scores': np.array(()),
-            })
-
-    return out
 
 
 def display(preds, imgs, obj_list, imshow=True, imwrite=False):
@@ -513,19 +474,17 @@ vehicle_name= {
 
 
 
-def display_img(preds, imgs, imshow=True,  outvid = None, vehicle_id = None):
+def display_img(preds, imgs, imshow=True,  outvid = None):
     
     for i in range(len(imgs)):
-        if len(preds[i]['rois']) == 0:
+        if len(preds[i]['bboxes']) == 0:
             continue
 
         imgs[i] = imgs[i].copy()
 
-        for j in range(len(preds[i]['rois'])):
-            x1, y1, x2, y2 = preds[i]['rois'][j].astype(np.int)
-            if preds[i]['class_ids'][j] not in vehicle_id.keys():
-                continue
-            obj = vehicle_name[vehicle_id[preds[i]['class_ids'][j]]]
+        for j in range(len(preds[i]['bboxes'])):
+            x1, y1, x2, y2 = preds[i]['bboxes'][j].astype(np.int)
+            obj = vehicle_name[preds[i]['classes'][j]]
             score = float(preds[i]['scores'][j])
             plot_one_box(imgs[i], [x1, y1, x2, y2], label=obj,score=score,color=color_list[get_index_label(obj, obj_list)])
 

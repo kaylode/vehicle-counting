@@ -1,6 +1,8 @@
 # Author: Zylo117
 
 import torch
+import torchvision
+import numpy as np
 from torch import nn
 
 from .efficientdet.model import BiFPN, Regressor, Classifier, EfficientNet
@@ -85,3 +87,45 @@ class EfficientDetBackbone(nn.Module):
             print(ret)
         except RuntimeError as e:
             print('Ignoring ' + str(e) + '"')
+
+
+    def detect(self, x, anchors, regression, classification, regressBoxes, clipBoxes, threshold, iou_threshold):
+        transformed_anchors = regressBoxes(anchors, regression)
+        transformed_anchors = clipBoxes(transformed_anchors, x)
+        scores = torch.max(classification, dim=2, keepdim=True)[0]
+        scores_over_thresh = (scores > threshold)[:, :, 0]
+        out = []
+        for i in range(x.shape[0]):
+            if scores_over_thresh[i].sum() == 0:
+                out.append({
+                    'bboxes': np.array(()),
+                    'classes': np.array(()),
+                    'scores': np.array(()),
+                })
+                continue
+
+            classification_per = classification[i, scores_over_thresh[i, :], ...].permute(1, 0) # [90, 84]
+            transformed_anchors_per = transformed_anchors[i, scores_over_thresh[i, :], ...]     # [84, 4]
+            scores_per = scores[i, scores_over_thresh[i, :], ...]                               # [84, 1]
+            scores_, classes_ = classification_per.max(dim=0)                                   # [84]
+
+            #anchors_nms_idx = batched_nms(transformed_anchors_per, scores_per[:, 0], classes_, iou_threshold=iou_threshold)
+            anchors_nms_idx = torchvision.ops.nms(transformed_anchors_per, scores_per[:, 0], iou_threshold=iou_threshold)
+            if anchors_nms_idx.shape[0] != 0:
+                classes_ = classes_[anchors_nms_idx]
+                scores_ = scores_[anchors_nms_idx]
+                boxes_ = transformed_anchors_per[anchors_nms_idx, :]
+
+                out.append({
+                    'bboxes': boxes_.cpu().numpy(),
+                    'classes': classes_.cpu().numpy(),
+                    'scores': scores_.cpu().numpy(),
+                })
+            else:
+                out.append({
+                    'bboxes': np.array(()),
+                    'classes': np.array(()),
+                    'scores': np.array(()),
+                })
+
+        return out
