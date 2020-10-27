@@ -73,11 +73,11 @@ def main(args, config):
             im_shows = []
             for b in range(args.batch_size):
                 success, frame_ = vidcap.read()
-                frame = cv2.cvtColor(frame_, cv2.COLOR_BGR2RGB)
-                frame = Image.fromarray(frame)
-
                 if not success:
                     break
+
+                frame = cv2.cvtColor(frame_, cv2.COLOR_BGR2RGB)
+                frame = Image.fromarray(frame)
                 ims.append(val_transforms(frame))
                 im_shows.append(frame_)
             
@@ -88,7 +88,6 @@ def main(args, config):
                 for idx, out in enumerate(outs):
                     bbox_xyxy, cls_conf, cls_ids = out['bboxes'], out['scores'], out['classes']
                     bbox_xyxy = bbox_xyxy.astype(np.int)
-                    cls_conf = float(cls_conf)
                     out_dict = {
                         'bboxes': bbox_xyxy.tolist(),
                         'classes': cls_ids.tolist(),
