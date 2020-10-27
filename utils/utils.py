@@ -419,19 +419,13 @@ def create_image_roi(im, polygons):
 
 def re_id(outputs, ori_img, vehicle_id, polygons=None):
     results= []
-    idx_frame = 1
     if len(outputs) > 0:
         bbox_tlwh = []
         bbox_xyxy = outputs[:, :4]
         identities = outputs[:, -1]
         labels = outputs[:, -2]
         ori_im = draw_boxes(ori_img, bbox_xyxy, identities, labels, vehicle_id = vehicle_id)
-        
-        
-        #for bb_xyxy in bbox_xyxy:
-            #bbox_tlwh.append(deepsort._xyxy_to_tlwh(bb_xyxy))
 
-        #results.append((idx_frame - 1, bbox_tlwh, identities))
     else:
         ori_im = ori_img
     return ori_im
@@ -444,13 +438,9 @@ vehicle_cls_show = {
         'truck': '4'
     }
 
-def draw_boxes(img, bbox, identities=None, labels = None, offset=(0,0), vehicle_id = None):
+def draw_boxes(img, bbox, identities=None, labels = None, vehicle_id = None):
     for i,box in enumerate(bbox):
         x1,y1,x2,y2 = [int(i) for i in box]
-        x1 += offset[0]
-        x2 += offset[0]
-        y1 += offset[1]
-        y2 += offset[1]
         # box text and bar
         id = int(identities[i]) if identities is not None else 0 
         classes_id = vehicle_id[labels[i]]
@@ -458,7 +448,7 @@ def draw_boxes(img, bbox, identities=None, labels = None, offset=(0,0), vehicle_
         label = '{}id:{:d} c:{}'.format("", id, vehicle_cls_show[classes_id])
         t_size = cv2.getTextSize(label, cv2.FONT_HERSHEY_PLAIN, 2 , 2)[0]
         try:
-            cv2.rectangle(img,(x1, y1),(x2,y2),color,3)
+            cv2.rectangle(img,(x1, y1),(x2,y2),color,2)
             cv2.rectangle(img,(x1, y1),(x1+t_size[0]+3,y1+t_size[1]+4), color,-1)
             cv2.putText(img,label,(x1,y1+t_size[1]+4), cv2.FONT_HERSHEY_PLAIN, 2, [255,255,255], 2)
         except:
