@@ -1,5 +1,5 @@
 settings:
-  num_classes: 4
+  classes: ['motorcycle', 'car', 'bus', 'truck']
   size: [1280,720]
   checkpoint: "./models/deepsort/deep/checkpoint/ckpt.t7"
   cam:
@@ -8,7 +8,7 @@ settings:
       boxes: '/content/drive/My Drive/results/AIC HCMC 2020/boxes/cam_01'
       zone: '/content/main/datasets/aic-hcmc2020/zones/zones_movement_paths/cam_01.json'
       tracking_config:
-        MAX_DIST: 0.2
+        MAX_DIST: 0.3
         MIN_CONFIDENCE: 0.5
         NMS_MAX_OVERLAP: 0.9
         MAX_IOU_DISTANCE: 0.8
@@ -16,23 +16,112 @@ settings:
         N_INIT: 4
         NN_BUDGET: 60
     cam_02:
-      REID_CKPT: "./models/deepsort/deep/checkpoint/ckpt.t7"
-      MAX_DIST: 0.2
-      MIN_CONFIDENCE: 0.3
-      NMS_MAX_OVERLAP: 0.5
-      MAX_IOU_DISTANCE: 0.7
-      MAX_AGE: 40
-      N_INIT: 5
-      NN_BUDGET: 60
-    cam_03:
-      video:
-      boxes:
-      zone:
+      video: '/content/main/datasets/aic-hcmc2020/videos/cam_02.mp4'
+      boxes: '/content/drive/My Drive/results/AIC HCMC 2020/boxes/cam_02'
+      zone: '/content/main/datasets/aic-hcmc2020/zones/zones_movement_paths/cam_02.json'
       tracking_config:
-        MAX_DIST: 0.2
-        MIN_CONFIDENCE: 0.3
-        NMS_MAX_OVERLAP: 0.5
-        MAX_IOU_DISTANCE: 0.7
+        MAX_DIST: 0.3
+        MIN_CONFIDENCE: 0.5
+        NMS_MAX_OVERLAP: 0.9
+        MAX_IOU_DISTANCE: 0.8
         MAX_AGE: 40
-        N_INIT: 5
+        N_INIT: 4
         NN_BUDGET: 60
+    cam_03:
+      video: '/content/main/datasets/aic-hcmc2020/videos/cam_03.mp4'
+      boxes: '/content/drive/My Drive/results/AIC HCMC 2020/boxes/cam_03'
+      zone: '/content/main/datasets/aic-hcmc2020/zones/zones_movement_paths/cam_03.json'
+      tracking_config:
+        MAX_DIST: 0.3
+        MIN_CONFIDENCE: 0.5
+        NMS_MAX_OVERLAP: 0.9
+        MAX_IOU_DISTANCE: 0.8
+        MAX_AGE: 40
+        N_INIT: 4
+        NN_BUDGET: 60
+    cam_04:
+      video: '/content/main/datasets/aic-hcmc2020/videos/cam_04.mp4'
+      boxes: '/content/drive/My Drive/results/AIC HCMC 2020/boxes/cam_04'
+      zone: '/content/main/datasets/aic-hcmc2020/zones/zones_movement_paths/cam_04.json'
+      tracking_config:
+        MAX_DIST: 0.3
+        MIN_CONFIDENCE: 0.5
+        NMS_MAX_OVERLAP: 0.9
+        MAX_IOU_DISTANCE: 0.8
+        MAX_AGE: 40
+        N_INIT: 4
+        NN_BUDGET: 60
+    cam_05:
+      video: '/content/main/datasets/aic-hcmc2020/videos/cam_05.mp4'
+      boxes: '/content/drive/My Drive/results/AIC HCMC 2020/boxes/cam_05'
+      zone: '/content/main/datasets/aic-hcmc2020/zones/zones_movement_paths/cam_05.json'
+      tracking_config:
+        MAX_DIST: 0.3
+        MIN_CONFIDENCE: 0.5
+        NMS_MAX_OVERLAP: 0.9
+        MAX_IOU_DISTANCE: 0.8
+        MAX_AGE: 40
+        N_INIT: 4
+        NN_BUDGET: 60
+    cam_06:
+      video: '/content/main/datasets/aic-hcmc2020/videos/cam_06.mp4'
+      boxes: '/content/drive/My Drive/results/AIC HCMC 2020/boxes/cam_06'
+      zone: '/content/main/datasets/aic-hcmc2020/zones/zones_movement_paths/cam_06.json'
+      tracking_config:
+        MAX_DIST: 0.3
+        MIN_CONFIDENCE: 0.5
+        NMS_MAX_OVERLAP: 0.9
+        MAX_IOU_DISTANCE: 0.8
+        MAX_AGE: 40
+        N_INIT: 4
+        NN_BUDGET: 60
+    cam_07:
+      video: '/content/main/datasets/aic-hcmc2020/videos/cam_07.mp4'
+      boxes: '/content/drive/My Drive/results/AIC HCMC 2020/boxes/cam_07'
+      zone: '/content/main/datasets/aic-hcmc2020/zones/zones_movement_paths/cam_07.json'
+      tracking_config:
+        MAX_DIST: 0.3
+        MIN_CONFIDENCE: 0.5
+        NMS_MAX_OVERLAP: 0.9
+        MAX_IOU_DISTANCE: 0.8
+        MAX_AGE: 40
+        N_INIT: 4
+        NN_BUDGET: 60
+    cam_08:
+      video: '/content/main/datasets/aic-hcmc2020/videos/cam_08.mp4'
+      boxes: '/content/drive/My Drive/results/AIC HCMC 2020/boxes/cam_08'
+      zone: '/content/main/datasets/aic-hcmc2020/zones/zones_movement_paths/cam_08.json'
+      tracking_config:
+        MAX_DIST: 0.3
+        MIN_CONFIDENCE: 0.5
+        NMS_MAX_OVERLAP: 0.9
+        MAX_IOU_DISTANCE: 0.8
+        MAX_AGE: 40
+        N_INIT: 4
+        NN_BUDGET: 60
+    cam_09:
+      video: '/content/main/datasets/aic-hcmc2020/videos/cam_09.mp4'
+      boxes: '/content/drive/My Drive/results/AIC HCMC 2020/boxes/cam_09'
+      zone: '/content/main/datasets/aic-hcmc2020/zones/zones_movement_paths/cam_09.json'
+      tracking_config:
+        MAX_DIST: 0.3
+        MIN_CONFIDENCE: 0.5
+        NMS_MAX_OVERLAP: 0.9
+        MAX_IOU_DISTANCE: 0.8
+        MAX_AGE: 40
+        N_INIT: 4
+        NN_BUDGET: 60
+    cam_10:
+      video: '/content/main/datasets/aic-hcmc2020/videos/cam_10.mp4'
+      boxes: '/content/drive/My Drive/results/AIC HCMC 2020/boxes/cam_10'
+      zone: '/content/main/datasets/aic-hcmc2020/zones/zones_movement_paths/cam_10.json'
+      tracking_config:
+        MAX_DIST: 0.3
+        MIN_CONFIDENCE: 0.5
+        NMS_MAX_OVERLAP: 0.9
+        MAX_IOU_DISTANCE: 0.8
+        MAX_AGE: 40
+        N_INIT: 4
+        NN_BUDGET: 60
+
+    
