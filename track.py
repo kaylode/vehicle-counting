@@ -13,19 +13,6 @@ import json
 import cv2
 from configs import Config
 
-frame_width = 1280
-frame_height = 720
-
-
-
-
-vehicle_id = {
-        1: 'car',
-        0: 'motorcycle',
-        2: 'bus',
-        3: 'truck'
-    }
-
 class VideoTracker():
     def __init__(self, args, config):
         self.video_name = args.video_name #cam_01
@@ -36,13 +23,15 @@ class VideoTracker():
         cfg = config.cam[self.video_name]
         cam_cfg = cfg['tracking_config']
         
-        self.debug_mode = args.debug
+       
         self.frame_start = args.frame_start
         self.frame_end = args.frame_end
         self.zone_path = cfg['zone']
         self.video_path = cfg['video']
         self.boxes_path = cfg['boxes']
-        self.num_classes = config.num_classes
+        self.classes = config.classes
+        self.idx_classes = {idx:i for idx,i in enumerate(self.classes)}
+        self.num_classes = len(config.classes)
         self.width, self.height = config.size
         self.polygons, self.directions = self.get_annotations()
         self.deepsort = [self.build_tracker(config.checkpoint, cam_cfg) for i in range(self.num_classes)]
@@ -137,7 +126,7 @@ class VideoTracker():
 
                         if len(cls_ids) > 0:
                             outputs = self.deepsort[i].update(bbox_xyxy, cls_conf, ori_img)
-                            #outputs = self.deepsort[i].update(bbox_xyxy, cls_conf, ori_img)
+                            outputs = self.deepsort[i].update(bbox_xyxy, cls_conf, ori_img)
                             for obj in outputs:
                                 identity = obj[-1]
                                 center = [(obj[2]+obj[0]) / 2, (obj[3] + obj[1])/2]
@@ -153,7 +142,7 @@ class VideoTracker():
                                     self.obj_track[i][identity]['coords'].append(center)
                                     self.obj_track[i][identity]['frame_id'].append(idx_frame)
                     
-                            im_show = re_id(outputs, im_moi, labels=i, vehicle_id=vehicle_id)
+                            im_show = re_id(outputs, im_moi, labels=i)
                         else:
                             im_show = im_moi
 
@@ -168,7 +157,7 @@ class VideoTracker():
         
         
         moi_detections = counting_moi(self.directions ,self.obj_track, self.polygons, self.cam_id)
-        self.submit(self.video_name, moi_detections, debug = self.debug_mode)
+        self.submit(self.video_name, moi_detections)
 
 
 if __name__ == '__main__':
@@ -183,8 +172,6 @@ if __name__ == '__main__':
                         help='end at frame')
     parser.add_argument('--config', default = './configs/cam_configs.yaml',
                         help='configuration cam file')
-    parser.add_argument('--debug', action='store_true', default = False,
-                        help='debug print object id to file')
     parser.add_argument('--display', action='store_true', default = False,
                         help='debug print object id to file')          
     args = parser.parse_args()
