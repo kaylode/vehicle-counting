@@ -130,7 +130,7 @@ class VideoTracker():
                             for obj in outputs:
                                 identity = obj[-1]
                                 center = [(obj[2]+obj[0]) / 2, (obj[3] + obj[1])/2]
-                                label = obj[-2]
+                                label = i
                                 if identity not in self.obj_track[i]:
                                     self.obj_track[i][identity] = {
                                         'labels': [label],
