@@ -329,11 +329,11 @@ def draw_boxes(img, bbox, identities=None, labels = None):
         id = int(identities[i]) if identities is not None else 0  
         color = color_list[labels]
         label = '{}id:{:d} c:{}'.format("", id, str(labels+1))
-        t_size = cv2.getTextSize(label, cv2.FONT_HERSHEY_PLAIN, 2 , 2)[0]
+        t_size = cv2.getTextSize(label, cv2.FONT_HERSHEY_PLAIN, 1 , 1)[0]
         try:
             cv2.rectangle(img,(x1, y1),(x2,y2),color,2)
             cv2.rectangle(img,(x1, y1),(x1+t_size[0]+3,y1+t_size[1]+4), color,-1)
-            cv2.putText(img,label,(x1,y1+t_size[1]+4), cv2.FONT_HERSHEY_PLAIN, 2, [255,255,255], 2)
+            cv2.putText(img,label,(x1,y1+t_size[1]+4), cv2.FONT_HERSHEY_PLAIN, 1, [255,255,255], 1)
         except:
             pass
     return img
