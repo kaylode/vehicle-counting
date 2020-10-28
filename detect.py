@@ -87,6 +87,8 @@ def main(args, config):
                 outs = postprocessing(outs, batch['imgs'].cpu()[0], retransforms)
                 for idx, out in enumerate(outs):
                     bbox_xyxy, cls_conf, cls_ids = out['bboxes'], out['scores'], out['classes']
+                   
+                    
                     bbox_xyxy = bbox_xyxy.astype(np.int)
                     out_dict = {
                         'bboxes': bbox_xyxy.tolist(),

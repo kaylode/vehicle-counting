@@ -417,13 +417,12 @@ def create_image_roi(im, polygons):
     return masked_image
 
 
-def re_id(outputs, ori_img, vehicle_id, polygons=None):
+def re_id(outputs, ori_img, labels, vehicle_id, polygons=None):
     results= []
     if len(outputs) > 0:
         bbox_tlwh = []
         bbox_xyxy = outputs[:, :4]
         identities = outputs[:, -1]
-        labels = outputs[:, -2]
         ori_im = draw_boxes(ori_img, bbox_xyxy, identities, labels, vehicle_id = vehicle_id)
 
     else:
@@ -439,11 +438,11 @@ vehicle_cls_show = {
     }
 
 def draw_boxes(img, bbox, identities=None, labels = None, vehicle_id = None):
+    classes_id = vehicle_id[labels]
     for i,box in enumerate(bbox):
         x1,y1,x2,y2 = [int(i) for i in box]
         # box text and bar
-        id = int(identities[i]) if identities is not None else 0 
-        classes_id = vehicle_id[labels[i]]
+        id = int(identities[i]) if identities is not None else 0  
         color = color_list[get_index_label(classes_id, obj_list)]
         label = '{}id:{:d} c:{}'.format("", id, vehicle_cls_show[classes_id])
         t_size = cv2.getTextSize(label, cv2.FONT_HERSHEY_PLAIN, 2 , 2)[0]
@@ -508,24 +507,25 @@ def distance_point_line(line, p3): # line(p1,p2), point(p3)
 
 def counting_moi_cosine(paths, obj_tracks, polygons):
     moi_detection_list = []
-    for obj_id, obj_list in obj_tracks.items():
-        
-        # Most frequency class
-        true_label = max(set(obj_list['labels']), key = obj_list['labels'].count) 
-        last_frame = obj_list['frame_id'][-1]
+    for i in range(len(obj_tracks)):
+        for obj_id, obj_list in obj_tracks[i].items():
+            
+            # Most frequency class
+            true_label = max(set(obj_list['labels']), key = obj_list['labels'].count) 
+            last_frame = obj_list['frame_id'][-1]
 
-        max_cosin = -2
-        movement_id = 1
-        first_point = obj_list['coords'][0]
-        last_point = obj_list['coords'][-1]
-        obj_vector = (first_point, last_point)
-        for movement_label, movement_vector in paths.items():
-            cosin = cosin_similarity(obj_vector,movement_vector)
-            if cosin > max_cosin:
-                max_cosin = cosin
-                movement_id = movement_label
+            max_cosin = -2
+            movement_id = 1
+            first_point = obj_list['coords'][0]
+            last_point = obj_list['coords'][-1]
+            obj_vector = (first_point, last_point)
+            for movement_label, movement_vector in paths.items():
+                cosin = cosin_similarity(obj_vector,movement_vector)
+                if cosin > max_cosin:
+                    max_cosin = cosin
+                    movement_id = movement_label
 
-        moi_detection_list.append((obj_id, last_frame, movement_id, true_label))    
+            moi_detection_list.append((obj_id, last_frame, movement_id, true_label))    
     return moi_detection_list
 
 
@@ -548,37 +548,38 @@ def counting_moi_distance(paths, obj_tracks, polygons, cam_id):
     }
     movements = movement_dict[cam_id]
     moi_detection_list = []
-    for obj_id, obj_list in obj_tracks.items():
-        
-        # Most frequency class
-        true_label = max(set(obj_list['labels']), key = obj_list['labels'].count) 
-        last_frame = obj_list['frame_id'][-1]
+    for i in range(len(obj_tracks)):
+        for obj_id, obj_list in obj_tracks[i].items():
+            
+            # Most frequency class
+            true_label = max(set(obj_list['labels']), key = obj_list['labels'].count) 
+            last_frame = obj_list['frame_id'][-1]
 
-        movement_id = 1
-        first_point = obj_list['coords'][0]
-        last_point = obj_list['coords'][-1]
+            movement_id = 1
+            first_point = obj_list['coords'][0]
+            last_point = obj_list['coords'][-1]
 
-        minn = 10000
-        minn2 = 10000
-        min_id = None
-        min_id2 = None
-        for idx, i in enumerate(s):
-            dist1 = distance_point_line(i, first_point)
-            dist2 = distance_point_line(i, last_point)
-            if  dist1 <= minn:
-                minn = dist1
-                min_id = idx
-            if  dist2 <= minn2:
-                minn2 = dist2
-                min_id2 = idx
+            minn = 10000
+            minn2 = 10000
+            min_id = None
+            min_id2 = None
+            for idx, i in enumerate(s):
+                dist1 = distance_point_line(i, first_point)
+                dist2 = distance_point_line(i, last_point)
+                if  dist1 <= minn:
+                    minn = dist1
+                    min_id = idx
+                if  dist2 <= minn2:
+                    minn2 = dist2
+                    min_id2 = idx
 
-        if min_id is None or min_id2 is None:
-            continue
-        movement_id = movements[min_id][min_id2]
-        if movement_id is None:
-            continue
+            if min_id is None or min_id2 is None:
+                continue
+            movement_id = movements[min_id][min_id2]
+            if movement_id is None:
+                continue
 
-        moi_detection_list.append((obj_id, last_frame, movement_id, true_label))
+            moi_detection_list.append((obj_id, last_frame, movement_id, true_label))
     return moi_detection_list
 
 
@@ -589,18 +590,6 @@ def counting_moi(paths, obj_tracks, polygons, cam_id):
     else:
         moi_detection_list = counting_moi_cosine(paths, obj_tracks, polygons)
     return moi_detection_list
-
-
-def submit(video_name, output_vid, moi_detections, debug = False):
-    file_name = os.path.join('results/submission', video_name)
-    result_filename = '{}.txt'.format(file_name)
-    result_debug = '{}_debug.txt'.format(file_name)
-    video_id = video_name[-2:]
-    with open(result_filename, 'w+') as result_file, open(result_debug, 'w+') as debug_file:
-        for obj_id , frame_id, movement_id, vehicle_class_id in moi_detections:
-            result_file.write('{} {} {} {}\n'.format(video_name, frame_id, str(int(movement_id)), vehicle_class_id+1))
-            debug_file.write('{} {} {} {} {}\n'.format(obj_id, video_name, frame_id, str(int(movement_id)), vehicle_class_id+1))
-    print('Save to',result_filename,'and', result_debug)
 
 
 def check_bbox_intersect_polygon(polygon, bbox):

@@ -35,7 +35,7 @@ class DeepSort(object):
         scores = np.array([d.confidence for d in detections])
         indices = non_max_suppression(boxes, self.nms_max_overlap, scores)
         detections = [detections[i] for i in indices]
-        labels = [labels[i] for i in indices]
+
 
         # update tracker
         self.tracker.predict()
@@ -49,8 +49,7 @@ class DeepSort(object):
             box = track.to_tlwh()
             x1,y1,x2,y2 = self._tlwh_to_xyxy(box)
             track_id = track.track_id
-            label = track.label
-            outputs.append(np.array([x1,y1,x2,y2, label,track_id], dtype=np.int))
+            outputs.append(np.array([x1,y1,x2,y2,track_id], dtype=np.int))
         if len(outputs) > 0:
             outputs = np.stack(outputs,axis=0)
         return outputs
