@@ -40,6 +40,7 @@ def main(args, config):
         ToPILImage(),
         Resize(size = (frame_width, frame_height))
     ])
+    idx_classes = {idx:i for idx,i in enumerate(config.obj_list)}
     NUM_CLASSES = len(config.obj_list)
     net = EfficientDetBackbone(num_classes=NUM_CLASSES, compound_coef=args.c,
                                  ratios=eval(config.anchors_ratios), scales=eval(config.anchors_scales))
@@ -84,7 +85,10 @@ def main(args, config):
             with torch.no_grad():
                 batch = {'imgs': torch.stack([i['img'] for i in ims]).to(device)}
                 outs = model.inference_step(batch, args.min_conf, args.min_iou)
-                outs = postprocessing(outs, batch['imgs'].cpu()[0], retransforms)
+                try:
+                    outs = postprocessing(outs, batch['imgs'].cpu()[0], retransforms)
+                except:
+                    pass
                 for idx, out in enumerate(outs):
                     bbox_xyxy, cls_conf, cls_ids = out['bboxes'], out['scores'], out['classes']
                    
@@ -98,7 +102,7 @@ def main(args, config):
                     with open(args.saved_path+'/{}/{}'.format(video_name,str(frame_idx).zfill(5)+'.json'), 'w') as f:
                         json.dump(out_dict, f)
                     frame_idx+=1
-                display_img(outs, im_shows, imshow=False, outvid=outvid)
+                display_img(outs, im_shows, imshow=False, outvid=outvid, obj_list=idx_classes)
             pbar.update(args.batch_size)
 
 if __name__ == '__main__':
