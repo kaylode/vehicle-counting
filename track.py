@@ -65,7 +65,7 @@ class VideoTracker():
                 directions[i['label'][-2:]] = i['points']
         return zone, directions
 
-    def submit(self, video_name, moi_detections):
+    def submit(self, moi_detections):
         submission_path = os.path.join(self.out_path, 'submission')
         if not os.path.exists(submission_path):
             os.mkdir(submission_path)
@@ -74,9 +74,9 @@ class VideoTracker():
         result_debug = '{}_debug.txt'.format(file_name)
         with open(result_filename, 'w+') as result_file, open(result_debug, 'w+') as debug_file:
             for obj_id , frame_id, movement_id, vehicle_class_id in moi_detections:
-                result_file.write('{} {} {} {}\n'.format(video_name, frame_id, str(int(movement_id)), vehicle_class_id+1))
+                result_file.write('{} {} {} {}\n'.format(self.video_name, frame_id, str(int(movement_id)), vehicle_class_id+1))
                 if self.display:
-                    debug_file.write('{} {} {} {} {}\n'.format(obj_id, video_name, frame_id, str(int(movement_id)), vehicle_class_id+1))
+                    debug_file.write('{} {} {} {} {}\n'.format(obj_id, self.video_name, frame_id, str(int(movement_id)), vehicle_class_id+1))
         print('Save to',result_filename,'and', result_debug)
 
     def run(self):
@@ -157,7 +157,7 @@ class VideoTracker():
         
         
         moi_detections = counting_moi(self.directions ,self.obj_track, self.polygons, self.cam_id)
-        self.submit(self.video_name, moi_detections)
+        self.submit(moi_detections)
 
 
 if __name__ == '__main__':
@@ -168,13 +168,13 @@ if __name__ == '__main__':
                         help='output path') 
     parser.add_argument('--frame_start', default = 0,
                         help='start at frame')
-    parser.add_argument('--frame_end', default = 5892,
+    parser.add_argument('--frame_end', default = 6000,
                         help='end at frame')
-    parser.add_argument('--config', default = './configs/cam_configs.yaml',
+    parser.add_argument('--config', default = 'cam_configs.yaml',
                         help='configuration cam file')
     parser.add_argument('--display', action='store_true', default = False,
                         help='debug print object id to file')          
     args = parser.parse_args()
-    configs = Config(args.config)
+    configs = Config(os.path.join('configs',args.config))
     tracker = VideoTracker(args, configs)
     tracker.run()

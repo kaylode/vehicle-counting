@@ -75,13 +75,13 @@ def main(args, config):
             for b in range(args.batch_size):
                 success, frame_ = vidcap.read()
                 if not success:
-                    break
+                    return
 
                 frame = cv2.cvtColor(frame_, cv2.COLOR_BGR2RGB)
                 frame = Image.fromarray(frame)
                 ims.append(val_transforms(frame))
                 im_shows.append(frame_)
-            
+
             with torch.no_grad():
                 batch = {'imgs': torch.stack([i['img'] for i in ims]).to(device)}
                 outs = model.inference_step(batch, args.min_conf, args.min_iou)
@@ -115,7 +115,7 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', type=int, default = 2,  help='batch size')
     parser.add_argument('--output_path', type=str, default = None, help='name of output to .avi file')
     parser.add_argument('--frame_start', type=int, default = 0, help='start from frame')
-    parser.add_argument('--frame_end', type=int, default = 5892,  help='end at frame')
+    parser.add_argument('--frame_end', type=int, default = 6000,  help='end at frame')
     parser.add_argument('--saved_path', type=str, default = 'results/detection',help='save detection at')
     parser.add_argument('--config', type=str, default = None,help='save detection at')
 
