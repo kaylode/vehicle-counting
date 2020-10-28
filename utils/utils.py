@@ -16,8 +16,6 @@ import torchvision
 import sys
 sys.path.append('..')
 
-obj_list = ['motorcycle', 'car', 'bus', 'truck']
-
 
 def one_hot_embedding(labels, num_classes):
     '''
@@ -194,64 +192,6 @@ def postprocessing(outs, imgs, retransforms = None):
     return outs
         
 
-def aspectaware_resize_padding(image, width, height, interpolation=None, means=None):
-    old_h, old_w, c = image.shape
-    if old_w > old_h:
-        new_w = width
-        new_h = int(width / old_w * old_h)
-    else:
-        new_w = int(height / old_h * old_w)
-        new_h = height
-
-    canvas = np.zeros((height, height, c), np.float32)
-    if means is not None:
-        canvas[...] = means
-
-    if new_w != old_w or new_h != old_h:
-        if interpolation is None:
-            image = cv2.resize(image, (new_w, new_h))
-        else:
-            image = cv2.resize(image, (new_w, new_h), interpolation=interpolation)
-
-    padding_h = height - new_h
-    padding_w = width - new_w
-
-    if c > 1:
-        canvas[:new_h, :new_w] = image
-    else:
-        if len(image.shape) == 2:
-            canvas[:new_h, :new_w, 0] = image
-        else:
-            canvas[:new_h, :new_w] = image
-
-    return canvas, new_w, new_h, old_w, old_h, padding_w, padding_h,
-
-
-def preprocess(im, max_size=512, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)):
-    ori_imgs = [i[..., ::-1] for i in im]
-    normalized_imgs = [(img / 255 - mean) / std for img in ori_imgs]
-    imgs_meta = [aspectaware_resize_padding(img, max_size, max_size,
-                                            means=None) for img in normalized_imgs]
-    framed_imgs = [img_meta[0] for img_meta in imgs_meta]
-    framed_metas = [img_meta[1:] for img_meta in imgs_meta]
-
-    return ori_imgs, framed_imgs, framed_metas
-
-
-def preprocess_video(*frame_from_video, max_size=512, mean=(0.406, 0.456, 0.485), std=(0.225, 0.224, 0.229)):
-    ori_imgs = frame_from_video
-    normalized_imgs = [(img / 255 - mean) / std for img in ori_imgs]
-    imgs_meta = [aspectaware_resize_padding(img[..., ::-1], max_size, max_size,
-                                            means=None) for img in normalized_imgs]
-    framed_imgs = [img_meta[0] for img_meta in imgs_meta]
-    framed_metas = [img_meta[1:] for img_meta in imgs_meta]
-
-    return ori_imgs, framed_imgs, framed_metas
-
-
-
-
-
 def display(preds, imgs, obj_list, imshow=True, imwrite=False):
     for i in range(len(imgs)):
         if len(preds[i]['rois']) == 0:
@@ -344,11 +284,6 @@ def standard_to_bgr(list_color_name):
     return standard
 
 
-def get_index_label(label, obj_list):
-    index = int(obj_list.index(label))
-    return index
-
-
 def plot_one_box(img, coord, label=None, score=None, color=None, line_thickness=None):
     tl = line_thickness or int(round(0.001 * max(img.shape[0:2])))  # line thickness
     color = color
@@ -374,77 +309,26 @@ def boolean_string(s):
 
 # Additionals
 
-def get_zone(root, name):
-    with open(os.path.join(root,'{}.json'.format(name)), 'r') as f:
-        anno = json.load(f)
-    zone = anno['shapes'][0]
-    return zone['points']
-
-def get_directions(root,name):
-    with open(os.path.join(root,'{}.json'.format(name)), 'r') as f:
-        anno = json.load(f)
-    
-    directions =  {}
-    for i in anno['shapes']:
-        if i['label'].startswith('direction'):
-            directions[i['label'][-2:]] = i['points']
-    return directions
-
-def visualize_img(frame, polygons, directions=None):
-    fix, ax = plt.subplots(figsize=(10,10))
-    if directions is not None:
-        for path_label, path_vector in directions.items():
-            xv, yv = zip(*path_vector)
-            ax.plot(xv,yv)
-    polygons.append(polygons[0])
-    xs, ys = zip(*polygons)
-    ax.imshow(frame)
-    ax.fill(xs, ys, alpha = 0.2, color = 'yellow')
-    plt.show()
-
-def create_image_roi(im, polygons):
-    mask = np.zeros(im.shape, dtype=np.uint8)
-    roi_corners = np.array([polygons], dtype=np.int32)
-
-    # fill the ROI so it doesn't get wiped out when the mask is applied
-    channel_count = im.shape[2]  # i.e. 3 or 4 depending on your image
-    ignore_mask_color = (255,)*channel_count
-    cv2.fillPoly(mask, roi_corners, ignore_mask_color)
-    # from Masterfool: use cv2.fillConvexPoly if you know it's convex
-
-    # apply the mask
-    masked_image = cv2.bitwise_and(im, mask)
-    return masked_image
-
-
-def re_id(outputs, ori_img, labels, vehicle_id, polygons=None):
+def re_id(outputs, ori_img, labels, polygons=None):
     results= []
     if len(outputs) > 0:
         bbox_tlwh = []
         bbox_xyxy = outputs[:, :4]
         identities = outputs[:, -1]
-        ori_im = draw_boxes(ori_img, bbox_xyxy, identities, labels, vehicle_id = vehicle_id)
+        ori_im = draw_boxes(ori_img, bbox_xyxy, identities, labels)
 
     else:
         ori_im = ori_img
     return ori_im
 
 
-vehicle_cls_show = {
-        'motorcycle': '1',
-        'car': '2',
-        'bus' : '3',
-        'truck': '4'
-    }
-
-def draw_boxes(img, bbox, identities=None, labels = None, vehicle_id = None):
-    classes_id = vehicle_id[labels]
+def draw_boxes(img, bbox, identities=None, labels = None):
     for i,box in enumerate(bbox):
         x1,y1,x2,y2 = [int(i) for i in box]
         # box text and bar
         id = int(identities[i]) if identities is not None else 0  
-        color = color_list[get_index_label(classes_id, obj_list)]
-        label = '{}id:{:d} c:{}'.format("", id, vehicle_cls_show[classes_id])
+        color = color_list[labels]
+        label = '{}id:{:d} c:{}'.format("", id, str(labels+1))
         t_size = cv2.getTextSize(label, cv2.FONT_HERSHEY_PLAIN, 2 , 2)[0]
         try:
             cv2.rectangle(img,(x1, y1),(x2,y2),color,2)
@@ -454,16 +338,8 @@ def draw_boxes(img, bbox, identities=None, labels = None, vehicle_id = None):
             pass
     return img
 
-vehicle_name= {
-        0: 'motorcycle',
-        1: 'car',
-        2: 'bus',
-        3: 'truck'
-    }
 
-
-
-def display_img(preds, imgs, imshow=True,  outvid = None):
+def display_img(preds, imgs, imshow=True,  outvid = None, obj_list=None):
     
     for i in range(len(imgs)):
         if len(preds[i]['bboxes']) == 0:
@@ -473,9 +349,9 @@ def display_img(preds, imgs, imshow=True,  outvid = None):
 
         for j in range(len(preds[i]['bboxes'])):
             x1, y1, x2, y2 = preds[i]['bboxes'][j].astype(np.int)
-            obj = vehicle_name[preds[i]['classes'][j]]
+            obj = obj_list[preds[i]['classes'][j]]
             score = float(preds[i]['scores'][j])
-            plot_one_box(imgs[i], [x1, y1, x2, y2], label=obj,score=score,color=color_list[get_index_label(obj, obj_list)])
+            plot_one_box(imgs[i], [x1, y1, x2, y2], label=obj,score=score,color=color_list[preds[i]['classes'][j]])
 
 
         if imshow:
