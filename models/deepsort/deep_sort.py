@@ -38,8 +38,10 @@ class DeepSort(object):
 
 
         # update tracker
-        self.tracker.predict()
-        self.tracker.update(detections)
+        for i in range(2):
+            self.tracker.predict()
+            self.tracker.update(detections)
+        
 
         # output bbox identities
         outputs = []

@@ -23,7 +23,6 @@ class VideoTracker():
         cfg = config.cam[self.video_name]
         cam_cfg = cfg['tracking_config']
         
-       
         self.frame_start = args.frame_start
         self.frame_end = args.frame_end
         self.zone_path = cfg['zone']
@@ -126,7 +125,7 @@ class VideoTracker():
 
                         if len(cls_ids) > 0:
                             outputs = self.deepsort[i].update(bbox_xyxy, cls_conf, ori_img)
-                            outputs = self.deepsort[i].update(bbox_xyxy, cls_conf, ori_img)
+                        
                             for obj in outputs:
                                 identity = obj[-1]
                                 center = [(obj[2]+obj[0]) / 2, (obj[3] + obj[1])/2]
@@ -158,7 +157,6 @@ class VideoTracker():
         
         moi_detections = counting_moi(self.directions ,self.obj_track, self.polygons, self.cam_id)
         self.submit(moi_detections)
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Inference AIC Challenge Dataset')
