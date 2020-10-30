@@ -14,6 +14,10 @@ this repo
 │   track.py
 │   train.py
 │
+└───configs
+│      aic-hcmc.yaml
+│      cam_configs.yaml
+│
 └───datasets  
 │   │
 │   └───aic-hcmc2020
@@ -59,11 +63,11 @@ this repo
 python train.py -c=<version number of EfficientDet> --config=<path to project config yaml file>
 ```
 - **Extra Parameters**:
-    - ***--resume***:     path to checkpoint to resume training
-    - ***--batch_size***: batch size, recommend 4 - 8
-    - ***--head_only***:  if train only the head
-    - ***--num_epochs***: number of epochs
-    - ***--saved_path***: path to save weight
+    - ***--resume***:       path to checkpoint to resume training
+    - ***--batch_size***:   batch size, recommend 4 - 8
+    - ***--head_only***:    if train only the head
+    - ***--num_epochs***:   number of epochs
+    - ***--saved_path***:   path to save weight
     - ***--val_interval***: validate per number of epochs
     - ***--save_interval***: save per number of iterations
     - ***--log_path***:     tensorboard logging path 
@@ -71,22 +75,27 @@ python train.py -c=<version number of EfficientDet> --config=<path to project co
 # Inference on AIC-HCMC testset:
 ***Run detection for detecting bounding boxes and classes confidence scores***
 ```
-python detect.py -c=<version of EfficientDet> --path=<path to .mp4 video>
+python detect.py -c=<version of EfficientDet> --config=<path to project config yaml file>
 ```
 - **Extra Parameters**:
-    - ***--min_conf***:     minimum confident for detection
+    - ***-c***:             version of EfficientDet
+    - ***--config***:       configs for detection
     - ***--batch_size***:   batch size, recommend 4 - 8
+    - ***--min_conf***:     minimum confident for detection
     - ***--min_iou***:      minimum iou for detection
     - ***--weight***:       pretrained weight
     - ***--saved_path***:   path to save detection results
-
+    - ***--output_path***:    path to save mp4 file
+    
 ***Run tracking on detected bounding boxes and classes confidence scores***
 ```
-python tracker.py --config=<cam config> --ann_path=<path to zones folder> --box_path=<path to detection results folder> --video_path=<path to .mp4 video>
+python track.py video_name --config=<cam configs> --out_path=<path to save results> 
 ```
-- **Extra Parameters**:
-    - ***--debug***:        for logging vehicle id
-    - ***--output_path***:   path for output video and counting results
+- **Parameters**:
+    - ***video_name***:       video name that is defined in config
+    - ***--config***:         config for all cam
+    - ***--output_path***:    path for output video and counting results
+    - ***--display***:        for output video
     
 # Results:
 
