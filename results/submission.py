@@ -8,6 +8,8 @@ if __name__ == '__main__':
 
     with open(out_file, 'w') as fo:
         for cam in cam_file:
+            if 'debug' in cam:
+                continue
             cam_path = os.path.join(folder, cam)
             with open(cam_path, 'r') as fi:
                 data = fi.read()

@@ -180,13 +180,14 @@ def find_jaccard_overlap(set_1, set_2, order='xyxy'):
     return intersection / union  # (n1, n2)
 
 
-def postprocessing(outs, imgs, retransforms = None):
+def postprocessing(outs, imgs, retransforms = None, out_format='xyxy'):
     for item in outs:
         
         boxes_out = item['bboxes']
         boxes_out_xywh = change_box_order(boxes_out, order = 'xyxy2xywh')
         new_boxes = retransforms(img = imgs, box=boxes_out_xywh)['box']
-        new_boxes = change_box_order(new_boxes, order = 'xywh2xyxy')
+        if out_format == 'xyxy':
+            new_boxes = change_box_order(new_boxes, order = 'xywh2xyxy')
         item['bboxes'] = new_boxes
 
     return outs

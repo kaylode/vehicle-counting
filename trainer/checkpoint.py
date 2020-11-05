@@ -53,6 +53,11 @@ def load_checkpoint(model, path):
             ret = model.model.load_state_dict(state, strict=False)
         except RuntimeError as e:
             print(f'[Warning] Ignoring {e}')
+    except torch.nn.modules.module.ModuleAttributeError:
+        try:
+            ret = model.load_state_dict(state["model"])
+        except RuntimeError as e:
+            print(f'[Warning] Ignoring {e}')
     print("Loaded Successfully!")
 
 def get_epoch_iters(path):
