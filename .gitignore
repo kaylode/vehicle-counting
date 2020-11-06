@@ -68,3 +68,4 @@ models/tpu_model.py
 *.txt
 *.mp4
 *.zip
+Data Visualizer.ipynb
