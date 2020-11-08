@@ -94,7 +94,7 @@ python train.py -c=<version number of EfficientDet> --config=<path to project co
 # Inference on AIC-HCMC testset:
 ***Run detection for detecting bounding boxes and classes confidence scores***
 ```
-python detect.py -c=<version of EfficientDet> --config=<path to project config yaml file>
+python detect.py -c=<version of EfficientDet> --config=<path to project config yaml file> --video_path=<path to video .mp4>
 ```
 - **Extra Parameters**:
     - ***-c***:             version of EfficientDet
