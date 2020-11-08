@@ -40,11 +40,30 @@ this repo
 │           
 ```
 # Dataset:
-- AIC-HCMC-2020: [link](https://drive.google.com/drive/folders/1FttIEk5UsR3xLlRfphj_MlGWOWEVtAhz?usp=sharing)
+- AIC-HCMC-2020: ***not public***
+
+![Alt Text](demo/dataset.PNG)
 
 # Pretrained weights:
 - Download pretrained EfficientDet from [original repo](https://github.com/zylo117/Yet-Another-EfficientDet-Pytorch)
+- Download finetuned weights on AIC-HCMC-2020 dataset:
 
+Model | Image Size | Weights | MAP-S | MAP-M | MAP-L | ALL
+--- | --- | --- | --- | --- | --- | ---
+EfficientDet-D2 | 768 x 768 | [link](https://drive.google.com/file/d/1urU0JKQqrI-BNtOCwqLSPr-aue1qWN0U/view?usp=sharing) | 0.068 | 0.312 | 0.390 | 0.32
+
+
+# Custom dataset:
+- To use on custom dataset, see example yaml file in ./configs directory and create a new one and specified:
+```
+  project_name: <name of project>  # also the folder name of the dataset that under datasets folder
+  train_imgs: <training images directory>
+  val_imgs: <val images directory>
+  train_anns: <training images json annotations>
+  val_anns: <val images json annotations>
+  obj_list: <list of string contains object name>
+  ...
+```
 
 # Method:
 ***Training***
@@ -99,10 +118,12 @@ python track.py video_name --config=<cam configs> --out_path=<path to save resul
     
 # Results:
 
-![Alt Text](results/cam09demo.gif)
-![Alt Text](results/cam10_demo.gif)
+| | |
+|:-------------------------:|:-------------------------:|
+|<img width="1604" alt="screen" src="demo/cam_09.gif"> | <img width="1604" alt="screen" src="demo/cam_10.gif"> | 
+|<img width="1604" alt="screen" src="demo/cam_07.gif"> | <img width="1604" alt="screen" src="demo/cam_08.gif">|
 
 # References:
-- DeepSORT from https://github.com/nwojke/deep_sort
+- DeepSORT from https://github.com/ZQPei/deep_sort_pytorch
 - EfficientDet from https://github.com/zylo117/Yet-Another-EfficientDet-Pytorch
 - AIC-HCMC Baseline: https://github.com/hcmcaic/ai-challenge-2020
