@@ -64,8 +64,17 @@ models/tpu_model.py
 .ipynb_checkpoints/Faster RCNN-checkpoint.ipynb
 *.1
 *.ipynb
-*.png
 *.txt
 *.mp4
 *.zip
 Data Visualizer.ipynb
+datasets/aic-hcmc2020/zones/cam_01.png
+datasets/aic-hcmc2020/zones/cam_02.png
+datasets/aic-hcmc2020/zones/cam_03.png
+datasets/aic-hcmc2020/zones/cam_04.png
+datasets/aic-hcmc2020/zones/cam_05.png
+datasets/aic-hcmc2020/zones/cam_06.png
+datasets/aic-hcmc2020/zones/cam_07.png
+datasets/aic-hcmc2020/zones/cam_08.png
+datasets/aic-hcmc2020/zones/cam_09.png
+datasets/aic-hcmc2020/zones/cam_10.png
