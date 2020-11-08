@@ -1,6 +1,3 @@
-emoji
-nltk
-transformers
-pytorch_lightning
+pyyaml 
 tensorboard
-tqdm
+webcolors == 1.11.1
