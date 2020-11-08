@@ -22,7 +22,7 @@ def main(args, config):
         torch.manual_seed(42)
     
 
-    video_name = args.video_path[-10:-4] # cam_01.mp4
+    video_name = os.path.basename(args.video_path)[:-4]
     
     if args.output_path is not None:
         outvid = cv2.VideoWriter(args.output_path,cv2.VideoWriter_fourcc(*'mp4v'), 10, (frame_width,frame_height))
@@ -106,19 +106,19 @@ def main(args, config):
             pbar.update(args.batch_size)
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Inference AIC Challenge Dataset')
+    parser = argparse.ArgumentParser(description='Detecting on video')
     parser.add_argument('--video_path', type=str,  help='path to video')
+    parser.add_argument('--config', type=str ,help='which configs to use')
     parser.add_argument('--min_conf', type=float, default= 0.3, help='minimum confidence for an object to be detect')
     parser.add_argument('--min_iou', type=float, default=0.3, help='minimum iou threshold for non max suppression')
     parser.add_argument('-c', type=int, default = 2, help='version of EfficentDet')
-    parser.add_argument('--weight', type=str, default = 'weights/efficientdet-d2.pth',help='version of EfficentDet')
+    parser.add_argument('--weight', type=str, default = 'weights/efficientdet-d2.pth',help='EfficentDet weights')
     parser.add_argument('--batch_size', type=int, default = 2,  help='batch size')
     parser.add_argument('--output_path', type=str, default = None, help='name of output to .avi file')
     parser.add_argument('--frame_start', type=int, default = 0, help='start from frame')
     parser.add_argument('--frame_end', type=int, default = 6000,  help='end at frame')
     parser.add_argument('--saved_path', type=str, default = 'results/detection',help='save detection at')
-    parser.add_argument('--config', type=str, default = None,help='save detection at')
-
+    
     args = parser.parse_args() 
     config = Config(os.path.join('configs',args.config))                   
     main(args, config)

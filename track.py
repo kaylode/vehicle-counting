@@ -17,7 +17,7 @@ class VideoTracker():
     def __init__(self, args, config):
         self.video_name = args.video_name #cam_01
         self.out_path = args.out_path
-        self.cam_id = int(self.video_name[-2:])
+        #self.cam_id = int(self.video_name[-2:])
         self.display = args.display
         
         cfg = config.cam[self.video_name]
@@ -189,18 +189,12 @@ class VideoTracker():
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Inference AIC Challenge Dataset')
-    parser.add_argument('video_name',
-                        help='configuration cam file')
-    parser.add_argument('--out_path',
-                        help='output path') 
-    parser.add_argument('--frame_start', default = 0,
-                        help='start at frame')
-    parser.add_argument('--frame_end', default = 6000,
-                        help='end at frame')
-    parser.add_argument('--config', default = 'cam_configs.yaml',
-                        help='configuration cam file')
-    parser.add_argument('--display', action='store_true', default = False,
-                        help='debug print object id to file')          
+    parser.add_argument('video_name',  help='configuration cam file')
+    parser.add_argument('--out_path', help='output path') 
+    parser.add_argument('--frame_start', default = 0,  help='start at frame')
+    parser.add_argument('--frame_end', default = 6000,  help='end at frame')
+    parser.add_argument('--config', default = 'cam_configs.yaml', help='configuration cam file')
+    parser.add_argument('--display', action='store_true', default = False,help='debug print object id to file')          
     args = parser.parse_args()
     configs = Config(os.path.join('configs',args.config))
     tracker = VideoTracker(args, configs)
