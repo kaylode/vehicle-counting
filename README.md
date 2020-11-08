@@ -60,7 +60,7 @@ EfficientDet-D2 | 768 x 768 | [link](https://drive.google.com/file/d/1urU0JKQqrI
   train_imgs: <training images directory>
   val_imgs: <val images directory>
   train_anns: <training images json annotations>
-  val_anns: <training images json annotations>
+  val_anns: <val images json annotations>
   obj_list: <list of string contains object name>
   ...
 ```
