@@ -32,7 +32,11 @@ class VideoTracker():
         self.idx_classes = {idx:i for idx,i in enumerate(self.classes)}
         self.num_classes = len(config.classes)
         self.width, self.height = config.size
+
+        ## Those polygons and directions are included in the dataset
         self.polygons, self.directions = self.get_annotations()
+
+        ## Build up a tracker for each class
         self.deepsort = [self.build_tracker(config.checkpoint, cam_cfg) for i in range(self.num_classes)]
 
 
@@ -79,7 +83,8 @@ class VideoTracker():
         print('Save to',result_filename,'and', result_debug)
 
     def run(self):
-        self.obj_track = [{}, {}, {}, {}]
+        # Dict to save object's tracks per class
+        self.obj_track = [{} for i in range(self.num_classes)]
         vidcap = cv2.VideoCapture(self.video_path)
         idx_frame = 0
         try:
@@ -92,6 +97,8 @@ class VideoTracker():
                     anno = os.path.join(self.boxes_path, str(idx_frame).zfill(5) + '.json')
                     if not success:
                         break
+
+                    ## Draw polygons to frame
                     ori_img = im[..., ::-1]
                     overlay_moi = im.copy()
                     alpha = 0.2
@@ -99,6 +106,7 @@ class VideoTracker():
                     im_moi = cv2.addWeighted(overlay_moi, alpha, im, 1 - alpha, 0)
                     cv2.putText(im_moi,str(idx_frame), (10,30), cv2.FONT_HERSHEY_SIMPLEX , 1 , (255,255,0) , 2)
 
+                    ## Read in detection results
                     try:
                         with open(anno, 'r') as f:
                             objs = json.load(f)
@@ -111,6 +119,7 @@ class VideoTracker():
                     cls_ids = np.array(objs['classes'])
 
                     # Check only bbox in roi
+                    ## Those rois are provided with the dataset
                     mask = np.array([1 if check_bbox_intersect_polygon(self.polygons,i.tolist()) else 0 for i in bbox_xyxy])
                     bbox_xyxy_ = np.array(bbox_xyxy[mask==1])
                     cls_conf_ = np.array(cls_conf[mask==1])
@@ -125,7 +134,13 @@ class VideoTracker():
 
                         if len(cls_ids) > 0:
                             outputs = self.deepsort[i].update(bbox_xyxy, cls_conf, ori_img)
-                        
+
+                            ## Save object's tracks for later counting
+                            ###     identity: object's id number
+                            ###     label: object's class
+                            ###     coords: center of object's bounding box
+                            ###     frame_id: the current frame
+
                             for obj in outputs:
                                 identity = obj[-1]
                                 center = [(obj[2]+obj[0]) / 2, (obj[3] + obj[1])/2]
@@ -152,11 +167,25 @@ class VideoTracker():
                     pbar.update(1)
         except KeyboardInterrupt:
             pass
-        # obj id, last frame id, movement id, vehicle id
+       
+        ### You can use the obj_track to output some numeric results such as counting
         
-        
+        with open(os.path.join(self.out_path, f'{self.video_name}_tracking_result.json'), 'w') as fout:
+            json.dump(self.obj_track, fout)
+
+         
+        # These are for the AIC-HCMC-2020 submission, the format is: {cam_id last_frame_id direction_id vehicle_id} 
+        # More details about the challenge can be found at the repo
+
+        """
         moi_detections = counting_moi(self.directions ,self.obj_track, self.polygons, self.cam_id)
         self.submit(moi_detections)
+        """
+
+        
+        
+ 
+        
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Inference AIC Challenge Dataset')

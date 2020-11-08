@@ -436,9 +436,9 @@ def counting_moi_distance(paths, obj_tracks, polygons, cam_id):
 
     s = [[polygons[i],polygons[0]] if i == len(polygons)-1 else [polygons[i], polygons[i+1]] for i in range(len(polygons))]
     movement_dict = {
-        7: [[None,None,'06','01'], [None,None,'06','01'], [None,'03',None,'04'], [None,'02','05', None]],
-        9: [['05','01','01','04'], ['02',None,'01','03'], ['02','02','06','03'], ['05','06','06', '04']],
-        10: [['03','04',None,'05'], ['03','02','01','01'], ['06','02',None,'01'], ['06','02','02', '05']],
+        #7: [[None,None,'06','01'], [None,None,'06','01'], [None,'03',None,'04'], [None,'02','05', None]],
+        #9: [['05','01','01','04'], ['02',None,'01','03'], ['02','02','06','03'], ['05','06','06', '04']],
+        #10: [['03','04',None,'05'], ['03','02','01','01'], ['06','02',None,'01'], ['06','02','02', '05']],
         
     }
     movements = movement_dict[cam_id]
@@ -479,11 +479,12 @@ def counting_moi_distance(paths, obj_tracks, polygons, cam_id):
 
 
 def counting_moi(paths, obj_tracks, polygons, cam_id):
-    intersect = [7,9,10]
+    # This is used for roads have intersect 
+    intersect = []
     if cam_id in intersect:
         moi_detection_list = counting_moi_distance(paths, obj_tracks, polygons, cam_id)
     else:
-        moi_detection_list = counting_moi_cosine(paths, obj_tracks, polygons)
+        moi_detection_list = counting_moi_cosine(paths, obj_tracks, polygons) # Two-way road
     return moi_detection_list
 
 
