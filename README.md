@@ -4,6 +4,10 @@
   - Task info: http://aichallenge.hochiminhcity.gov.vn/huong-dan-nhom-1
   - Leaderboard: http://aichcmc.ml/
 
+# Environments
+- pytorch 1.6.0
+- Windows 10
+
 # Demo
 [Google Colab Tutorial](./demo/AIC_HCMC.ipynb)
 
