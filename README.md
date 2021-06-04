@@ -44,7 +44,7 @@ this repo
 │           
 ```
 # Dataset:
-- AIC-HCMC-2020: ***not public***
+- AIC-HCMC-2020: [link](https://drive.google.com/file/d/1iu4ifOTqnH_t80mL5IGasM6yKxhziPdL/view?usp=sharing)
 
 ![Alt Text](demo/dataset.PNG)
 
