@@ -3,6 +3,7 @@ import numpy as np
 import albumentations as A
 from albumentations.pytorch.transforms import ToTensorV2
 from .custom import CustomCutout
+from configs import Config
 
 MEAN = [0.485, 0.456, 0.406]
 STD = [0.229, 0.224, 0.225]
@@ -58,50 +59,68 @@ def get_resize_augmentation(image_size, keep_ratio=False, box_transforms = False
             bbox_params=bbox_params)
         
 
-def get_augmentation(_type='train', level=None):
+def get_augmentation(_type='train'):
+
+    config = Config('./augmentations/augments.yaml')
+    blur_config = config.blur
+    flip_config = config.flip
+    ssr_config = flip_config['shift_scale_crop']
+    color_config = config.color
+    removal_config = config.removal
+    cutout_config = removal_config['cutout']
 
     transforms_list = [
         A.OneOf([
-            A.MotionBlur(p=.2),
-            A.GaussianBlur(p=0.2),
-            A.MedianBlur(blur_limit=3, p=0.2),
-            A.Blur(blur_limit=3, p=0.1),
-        ], p=0.0),
+            A.MotionBlur(p=blur_config['motion']),
+            A.GaussianBlur(p=blur_config['gaussian']),
+            A.MedianBlur(blur_limit=1, p=blur_config['median']),
+            A.Blur(blur_limit=1, p=blur_config['default']),
+        ], p=blur_config['prob']),
 
         A.OneOf([
-            A.RandomRotate90(p=0.3),
-            A.HorizontalFlip(p=0.5),
-            A.VerticalFlip(p=0.3),
-        ], p=0.8),
+            A.RandomRotate90(p=flip_config['rotate90']),
+            A.HorizontalFlip(p=flip_config['hflip']),
+            A.VerticalFlip(p=flip_config['vflip']),
+        ], p=flip_config['prob']),
 
         A.OneOf([
-            A.HueSaturationValue(hue_shift_limit=0.2, sat_shift_limit= 0.2, 
-                                 val_shift_limit=0.2, p=0.9),
-            A.RandomBrightnessContrast(brightness_limit=0.3, 
-                                       contrast_limit=0.3, 
-                                       p=0.3)
+            A.HueSaturationValue(
+                hue_shift_limit=color_config['hue'], 
+                sat_shift_limit=color_config['saturation'], 
+                val_shift_limit=color_config['value'], 
+                p=0.5),
+            A.RandomBrightnessContrast(
+                brightness_limit=color_config['brightness'], 
+                contrast_limit=color_config['contrast'], 
+                p=0.5)
         ], p=0.7),
 
         A.OneOf([
-            A.IAASharpen(p=0.5), 
+            A.IAASharpen(p=color_config['sharpen']), 
             A.Compose([
                 A.FromFloat(dtype='uint8', p=1),
                 A.OneOf([
-                    A.CLAHE(clip_limit=2.0, tile_grid_size=(8,8), p=0.5),
-                    A.JpegCompression(p=0.3),
+                    A.CLAHE(clip_limit=2.0, tile_grid_size=(8,8), p=color_config['clahe']),
+                    A.JpegCompression(p=color_config['compression']),
                 ], p=0.7),
                 A.ToFloat(p=1),
             ])           
-        ], p=0.8),
+        ], p=color_config['prob']),
         
         # A.RandomSizedCrop(min_max_height=(800, 800), height=1024, width=1024, p=0.5),
-        A.ShiftScaleRotate(shift_limit=0.2, scale_limit=0.2, rotate_limit=20, p=0.3),
-        CustomCutout(bbox_removal_threshold=0.50,min_cutout_size=32,max_cutout_size=64,number=12,p=0.8),
-    ]
+        A.ShiftScaleRotate(
+            shift_limit=ssr_config['shift_limit'], 
+            scale_limit=ssr_config['scale_limit'], 
+            rotate_limit=ssr_config['rotate_limit'], 
+            p=ssr_config['prob']),
 
-    if level is not None:
-        num_transforms = int((level+1)*2)
-        transforms_list = transforms_list[:num_transforms]
+        CustomCutout(
+            bbox_removal_threshold=cutout_config['threshold'],
+            min_cutout_size=cutout_config['min_size'],
+            max_cutout_size=cutout_config['max_size'],
+            number=cutout_config['number'], 
+            p=cutout_config['prob']),
+    ]
         
     transforms_list += [
         A.Normalize(mean=MEAN, std=STD, max_pixel_value=1.0, p=1.0),
