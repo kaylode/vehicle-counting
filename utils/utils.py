@@ -142,11 +142,12 @@ def draw_pred_gt_boxes(image_outname, img, boxes, labels, scores, image_name=Non
 
 def write_to_video(img, boxes, labels, scores, imshow=True,  outvid = None, obj_list=None):
     
-    def plot_one_box(img, coord, label=None, score=None, color=None, line_thickness=None):
+    def plot_one_box(img, box, label=None, score=None, color=None, line_thickness=None):
         tl = line_thickness or int(round(0.001 * max(img.shape[0:2])))  # line thickness
-        color = color
+
+        coord = [box[0], box[1], box[0]+box[2], box[1]+box[3]]
         c1, c2 = (int(coord[0]), int(coord[1])), (int(coord[2]), int(coord[3]))
-        cv2.rectangle(img, c1, c2, color, thickness=tl)
+        cv2.rectangle(img, c1, c2, color, thickness=tl*2)
         if label:
             tf = max(tl - 2, 1)  # font thickness
             s_size = cv2.getTextSize(str('{:.0%}'.format(score)), 0, fontScale=float(tl) / 3, thickness=tf)[0]
