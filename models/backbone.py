@@ -10,27 +10,23 @@ from utils.utils import download_pretrained_weights
 
 CACHE_DIR='./.cache'
 
-def get_model(args, config, device, num_classes):
+def get_model(args, config, num_classes):
+    
     NUM_CLASSES = num_classes
     max_post_nms = config.max_post_nms if config.max_post_nms > 0 else None
     max_pre_nms = config.max_pre_nms if config.max_pre_nms > 0 else None
-    if config.pretrained_backbone is None:
-        load_weights = True
-    else:
-        load_weights = False
-
+    load_weights = True
+    
     net = None
 
     if config.model_name.startswith('efficientdet'):
         compound_coef = config.model_name.split('-')[1]
-        assert compound_coef in [f'd{i}' for i in range(8)], f"efficientdet version {i} is not supported"
-
+        assert compound_coef in [f'd{i}' for i in range(8)], f"efficientdet version {compound_coef} is not supported"  
         net = EfficientDetBackbone(
             num_classes=NUM_CLASSES+1, 
             compound_coef=compound_coef, 
             load_weights=load_weights, 
             freeze_backbone = getattr(args, 'freeze_backbone', False),
-            pretrained_backbone_path=config.pretrained_backbone,
             freeze_batchnorm = getattr(args, 'freeze_bn', False),
             max_pre_nms=max_pre_nms,
             image_size=config.image_size)
@@ -39,10 +35,10 @@ def get_model(args, config, device, num_classes):
         version_name = config.model_name.split('v')[1]
         net = YoloBackbone(
             version_name=version_name,
+            load_weights=load_weights, 
             num_classes=NUM_CLASSES, 
             max_pre_nms=max_pre_nms,
-            max_post_nms=max_post_nms,
-            pretrained_backbone_path=config.pretrained_backbone)
+            max_post_nms=max_post_nms)
   
     # if args.sync_bn:
     #     net = nn.SyncBatchNorm.convert_sync_batchnorm(net).to(device)
@@ -64,9 +60,8 @@ class EfficientDetBackbone(BaseBackbone):
         self, 
         num_classes=80, 
         compound_coef='d0', 
-        load_weights=False, 
+        load_weights=True, 
         image_size=[512,512], 
-        pretrained_backbone_path=None, 
         freeze_backbone=False, 
         freeze_batchnorm = False,
         max_pre_nms=None,
@@ -91,8 +86,7 @@ class EfficientDetBackbone(BaseBackbone):
         net = EfficientDet(
             config, 
             pretrained_backbone=load_weights, 
-            freeze_backbone=freeze_backbone,
-            pretrained_backbone_path=pretrained_backbone_path)
+            freeze_backbone=freeze_backbone)
         
         if load_weights:
             load_pretrained(net, config.url)
@@ -102,8 +96,9 @@ class EfficientDetBackbone(BaseBackbone):
             freeze_bn(net.backbone)
             freeze_bn(net.fpn)
 
-        net.reset_head(num_classes=num_classes)
-        net.class_net = HeadNet(config, num_outputs=config.num_classes)
+        if num_classes != 90:
+            net.reset_head(num_classes=num_classes)
+            net.class_net = HeadNet(config, num_outputs=num_classes)
 
         self.model = DetBenchTrain(net, config)
 
@@ -154,8 +149,8 @@ class YoloBackbone(BaseBackbone):
         self,
         version_name='5s',
         num_classes=80, 
-        pretrained_backbone_path=None, 
         max_pre_nms=None,
+        load_weights=True, 
         max_post_nms=None,
         **kwargs):
 
@@ -184,10 +179,7 @@ class YoloBackbone(BaseBackbone):
             )
         
 
-        if pretrained_backbone_path is not None:
-            ckpt = torch.load(pretrained_backbone_path, map_location='cpu')  # load checkpoint
-            self.model.load_state_dict(ckpt, strict=False) 
-        else:
+        if load_weights:
             tmp_path = os.path.join(CACHE_DIR, f'yolo{version_name}.pth')
             download_pretrained_weights(f'yolov{version_name}', tmp_path)
             ckpt = torch.load(tmp_path, map_location='cpu')  # load checkpoint
