@@ -1,3 +1,4 @@
+import random
 import numpy as np
 from collections import namedtuple 
 from albumentations.core.transforms_interface import DualTransform
@@ -112,3 +113,100 @@ class CustomCutout(DualTransform):
         :returns: tuple of parameter(s) of __init__ method
         """
         return ('fill_value', 'bbox_removal_threshold', 'min_cutout_size', 'max_cutout_size', 'always_apply', 'p')
+
+
+class CutMix:
+    def __init__(self, max_area_drop_pct=0.75) -> None:
+        self.max_area_drop_pct = max_area_drop_pct
+
+    def __call__(self, set_images, set_boxes, set_labels, imsize):
+        """ 
+        This implementation of cutmix author:  https://www.kaggle.com/nvnnghia 
+        Refactoring and adaptation: https://www.kaggle.com/shonenkov
+        """
+        w, h = imsize
+        s = imsize[0] // 2
+    
+        xc, yc = [int(random.uniform(h * 0.25, w * 0.75)) for _ in range(2)]  # center x, y
+
+        result_image = np.full((h, w, 3), 1, dtype=np.float32)
+        result_boxes = []
+        result_labels = np.array([], dtype=np.int)
+        
+        for i,(image, boxes, labels) in enumerate(zip(set_images, set_boxes, set_labels)):
+            if i == 0:
+                x1a, y1a, x2a, y2a = max(xc - w, 0), max(yc - h, 0), xc, yc  # xmin, ymin, xmax, ymax (large image)
+                x1b, y1b, x2b, y2b = w - (x2a - x1a), h - (y2a - y1a), w, h  # xmin, ymin, xmax, ymax (small image)
+            elif i == 1:  # top right
+                x1a, y1a, x2a, y2a = xc, max(yc - h, 0), min(xc + w, s * 2), yc
+                x1b, y1b, x2b, y2b = 0, h - (y2a - y1a), min(w, x2a - x1a), h
+            elif i == 2:  # bottom left
+                x1a, y1a, x2a, y2a = max(xc - w, 0), yc, xc, min(s * 2, yc + h)
+                x1b, y1b, x2b, y2b = w - (x2a - x1a), 0, max(xc, w), min(y2a - y1a, h)
+            elif i == 3:  # bottom right
+                x1a, y1a, x2a, y2a = xc, yc, min(xc + w, s * 2), min(s * 2, yc + h)
+                x1b, y1b, x2b, y2b = 0, 0, min(w, x2a - x1a), min(y2a - y1a, h)
+            
+            result_image[y1a:y2a, x1a:x2a] = image[y1b:y2b, x1b:x2b]
+            padw = x1a - x1b
+            padh = y1a - y1b
+
+            boxes[:, 0] += padw
+            boxes[:, 1] += padh
+            boxes[:, 2] += padw
+            boxes[:, 3] += padh
+
+            result_boxes.append(boxes)
+            result_labels = np.concatenate((result_labels, labels))
+    
+        result_boxes = np.concatenate(result_boxes, 0)
+        if self.max_area_drop_pct:
+            old_areas = (result_boxes[:,2] - result_boxes[:,0]) * (result_boxes[:,3] -  result_boxes[:,1])
+
+        np.clip(result_boxes[:, 0:], 0, 2 * s, out=result_boxes[:, 0:])
+        
+        if self.max_area_drop_pct:
+            new_areas = (result_boxes[:,2] - result_boxes[:,0]) * (result_boxes[:,3] -  result_boxes[:,1])
+            
+        result_boxes = result_boxes.astype(np.int32)
+        index_to_use = np.where((result_boxes[:,2]-result_boxes[:,0])*(result_boxes[:,3]-result_boxes[:,1]) > 0)
+
+        if self.max_area_drop_pct:
+            drop_pct = (old_areas-new_areas)*1.0 / old_areas
+            picked_index = np.where(drop_pct < self.max_area_drop_pct)
+            index_to_use = np.intersect1d(index_to_use, picked_index)
+
+
+        result_boxes = result_boxes[index_to_use]
+        result_labels = result_labels[index_to_use]
+        
+        return result_image, result_boxes, result_labels
+
+class MixUp:
+    def __init__(self, alpha=1.0):
+        self.alpha = alpha
+        
+    def __call__(
+            self, 
+            image, boxes, labels,
+            r_image, r_boxes, r_labels):
+        """
+        Randomly mixes the given list if images with each other
+        source: https://www.kaggle.com/kaushal2896/data-augmentation-tutorial-basic-cutout-mixup
+        :param images: The images to be mixed up
+        :param bboxes: The bounding boxes (labels)
+        :param areas: The list of area of all the bboxes
+        :param alpha: Required to generate image wieghts (lambda) using beta distribution. In this case we'll use alpha=1, which is same as uniform distribution
+        """
+        
+        # Generate image weight (minimum 0.4 and maximum 0.6)
+        lam = np.clip(np.random.beta(self.alpha, self.alpha), 0.4, 0.6)
+        
+        # Weighted Mixup
+        mixedup_images = lam*image + (1 - lam)*r_image
+
+        # Mixup annotations
+        mixedup_bboxes = np.vstack((boxes, r_boxes)).astype(np.int32)
+        mixedup_labels = np.concatenate((labels, r_labels))
+
+        return mixedup_images, mixedup_bboxes, mixedup_labels
