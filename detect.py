@@ -11,6 +11,7 @@ import albumentations as A
 from albumentations.pytorch.transforms import ToTensorV2
 from augmentations.transforms import get_resize_augmentation
 from augmentations.transforms import MEAN, STD
+from models.deepsort.deep_sort import DeepSort
 
 parser = argparse.ArgumentParser(description='Perfom Objet Detection')
 parser.add_argument('--weight', type=str, default = None,help='version of EfficentDet')
@@ -23,56 +24,44 @@ parser.add_argument('--tta', action='store_true', help='whether to use test time
 parser.add_argument('--tta_ensemble_mode', type=str, default='wbf', help='tta ensemble mode')
 parser.add_argument('--tta_conf_threshold', type=float, default=0.01, help='tta confidence score threshold')
 parser.add_argument('--tta_iou_threshold', type=float, default=0.9, help='tta iou threshold')
-parser.add_argument('--viz', action='store_true', help='save detection at')
+parser.add_argument('--debug', action='store_true', help='save detection at')
 
 
-class Testset():
+class VideoSet:
     def __init__(self, config, input_path):
         self.input_path = input_path # path to video file
         self.image_size = config.image_size
-        self.get_video_info()
         self.transforms = A.Compose([
             get_resize_augmentation(config.image_size, keep_ratio=config.keep_ratio),
             A.Normalize(mean=MEAN, std=STD, max_pixel_value=1.0, p=1.0),
             ToTensorV2(p=1.0)
         ])
 
-        self.current_stream = None
-        self.current_frame_id = 0
-
-    def get_batch_size(self):
-        # Temporary
-        return 1
+        self.get_video_info()
 
     def get_video_info(self):
+        self.stream = cv2.VideoCapture(self.input_path)
+        self.current_frame_id = 0
         self.video_info = {}
-        self.num_frames = 0
 
-        vidcap = cv2.VideoCapture(self.input_path)
-        video_name = os.path.basename(self.input_path)
-        if vidcap.isOpened(): 
-            # get vidcap property 
-            WIDTH  = int(vidcap.get(cv2.CAP_PROP_FRAME_WIDTH))   # float `width`
-            HEIGHT = int(vidcap.get(cv2.CAP_PROP_FRAME_HEIGHT))  # float `height`
-            FPS = int(vidcap.get(cv2.CAP_PROP_FPS))
-            NUM_FRAMES = int(vidcap.get(cv2.CAP_PROP_FRAME_COUNT))
+        if self.stream.isOpened(): 
+            # get self.stream property 
+            self.WIDTH  = int(self.stream.get(cv2.CAP_PROP_FRAME_WIDTH))   # float `width`
+            self.HEIGHT = int(self.stream.get(cv2.CAP_PROP_FRAME_HEIGHT))  # float `height`
+            self.FPS = int(self.stream.get(cv2.CAP_PROP_FPS))
+            self.NUM_FRAMES = int(self.stream.get(cv2.CAP_PROP_FRAME_COUNT))
             self.video_info = {
-                'name': video_name,
-                'width': WIDTH,
-                'height': HEIGHT,
-                'fps': FPS,
-                'num_frames': NUM_FRAMES
+                'name': os.path.basename(self.input_path),
+                'width': self.WIDTH,
+                'height': self.HEIGHT,
+                'fps': self.FPS,
+                'num_frames': self.NUM_FRAMES
             }
-            self.num_frames += NUM_FRAMES
         else:
-            raise f"Cannot read video {video_name}"
-    
-    def init_reader(self):
-        self.current_stream = cv2.VideoCapture(self.input_path)
-        self.current_frame_id += 1
+            raise f"Cannot read video {os.path.basename(self.input_path)}"
 
     def __getitem__(self, idx):
-        success, ori_frame = self.current_stream.read()
+        success, ori_frame = self.stream.read()
         if not success:
             print(f"Cannot read frame {self.current_frame_id} from {self.video_info['name']}")
             return None
@@ -121,18 +110,52 @@ class Testset():
         }
 
     def __len__(self):
-        return self.num_frames
+        return self.NUM_FRAMES
 
     def __str__(self):
-        s2 = f"Number of frames: {self.num_frames}"
+        s2 = f"Number of frames: {self.NUM_FRAMES}"
         return s2
+
+class VideoLoader(DataLoader):
+    def __init__(self, config, video_path):
+        self.video_path = video_path
+        dataset = VideoSet(config, video_path)
+        self.video_info = dataset.video_info
+       
+        super(VideoLoader, self).__init__(
+            dataset,
+            batch_size= 1,
+            num_workers=0,
+            pin_memory=True,
+            collate_fn= dataset.collate_fn)
+        
+
+class VideoWriter:
+    def __init__(self, video_info, saved_path, obj_list):
+        self.video_info = video_info
+        self.saved_path = saved_path
+        self.obj_list = obj_list
+
+        video_name = self.video_info['name']
+        outpath =os.path.join(self.saved_path, video_name)
+        FPS = self.video_info['fps']
+        WIDTH = self.video_info['width']
+        HEIGHT = self.video_info['height']
+        NUM_FRAMES = self.video_info['num_frames']
+        self.outvid = cv2.VideoWriter(
+            outpath,   
+            cv2.VideoWriter_fourcc(*'mp4v'), 
+            FPS, 
+            (WIDTH, HEIGHT))
+
+    def write(self, img, boxes, labels, scores):
+        write_to_video(img, boxes, labels, scores, imshow=False, outvid = self.outvid, obj_list=self.obj_list)
+        
 
 class VideoDetect:
     def __init__(self, args, config):
         self.device = torch.device("cuda" if torch.cuda.is_available() else 'cpu')   
-        self.video_path = args.input_path
-        self.saved_path = args.output_path
-        self.viz = args.viz
+        self.debug = args.debug
         self.config = config
         self.min_iou = args.min_iou
         self.min_conf = args.min_conf
@@ -153,8 +176,7 @@ class VideoDetect:
         self.class_names.insert(0, 'Background')
 
         net = get_model(
-            args, config, 
-            self.device, 
+            args, config,
             num_classes=num_classes)
 
         self.model = Detector(model = net, device = self.device)
@@ -165,89 +187,75 @@ class VideoDetect:
 
         self.load_videos()
 
-    def load_videos(self):
-        self.all_video_paths = []   
-        if os.path.isdir(self.video_path):  # path to video folder
-            paths = sorted(os.listdir(self.video_path))
-            for path in paths:
-                self.all_video_paths.append(os.path.join(self.video_path, path))
-        elif os.path.isfile(self.video_path): # path to single video
-            self.all_video_paths.append(self.video_path)
-        self.num_videos = len(self.all_video_paths)
+    def run(self, batch):
+        with torch.no_grad():
+            boxes_result = []
+            labels_result = []
+            scores_result = []
+                
+            if self.tta is not None:
+                preds = self.tta.make_tta_predictions(self.model, batch)
+            else:
+                preds = self.model.inference_step(batch)
 
-    def init_loader(self, idx):
-        video_path = self.all_video_paths[idx]
-        self.dataset = Testset(self.config, video_path)
-        self.dataset.init_reader()
-        self.dataloader = DataLoader(
-            self.dataset,
-            batch_size= self.dataset.get_batch_size(),
-            num_workers=0,
-            pin_memory=True,
-            collate_fn= self.dataset.collate_fn)
+            for idx, outputs in enumerate(preds):
+                img_w = batch['image_ws'][idx]
+                img_h = batch['image_hs'][idx]
+                img_ori_ws = batch['image_ori_ws'][idx]
+                img_ori_hs = batch['image_ori_hs'][idx]
+                
+                outputs = postprocessing(
+                    outputs, 
+                    current_img_size=[img_w, img_h],
+                    ori_img_size=[img_ori_ws, img_ori_hs],
+                    min_iou=self.min_iou,
+                    min_conf=self.min_conf,
+                    max_dets=self.max_dets,
+                    keep_ratio=self.keep_ratio,
+                    output_format='xywh',
+                    mode=self.fusion_mode)
 
-    def init_writer(self):
-        video_name = self.dataset.video_info['name']
-        outpath =os.path.join(self.saved_path, video_name)
-        FPS = self.dataset.video_info['fps']
-        WIDTH = self.dataset.video_info['width']
-        HEIGHT = self.dataset.video_info['height']
-        NUM_FRAMES = self.dataset.video_info['num_frames']
-        self.outvid = cv2.VideoWriter(
-            outpath,   
-            cv2.VideoWriter_fourcc(*'mp4v'), 
-            FPS, 
-            (WIDTH, HEIGHT)
-        )
+                boxes = outputs['bboxes'] 
+                labels = outputs['classes']  
+                scores = outputs['scores']
+
+                boxes_result.append(boxes)
+                labels_result.append(labels)
+                scores_result.append(scores)
+
+        return {
+            "boxes": boxes_result, 
+            "labels": labels_result,
+            "scores": scores_result }
+
+class Pipeline:
+    def __init__(self, args, config):
+        self.detect = VideoDetect(args, config)
+        self.video_path = args.video_path
+
+        if os.path.isdir(self.video_path):
+            video_names = sorted(os.listdir(self.video_path))
+            self.all_video_paths = [os.path.join(self.video_path, i) for i in video_names]
+        else:
+            self.all_video_paths = [self.video_path]
 
     def run(self):
-        for video_idx in range(self.num_videos):
-            self.init_loader(video_idx)
-            self.init_writer()
-            with torch.no_grad():
-               
-                for idx, batch in enumerate(tqdm(self.dataloader)):
-                    if batch is None:
-                        continue
-                    if self.tta is not None:
-                        preds = self.tta.make_tta_predictions(self.model, batch)
-                    else:
-                        preds = self.model.inference_step(batch)
+        for video_path in self.all_video_paths:
+            videoloader = VideoLoader(config, video_path)
+            videowriter = VideoWriter(videoloader.dataset.video_info)
 
-                    for idx, outputs in enumerate(preds):
-                        ori_img = batch['ori_imgs'][idx]
-                        img_w = batch['image_ws'][idx]
-                        img_h = batch['image_hs'][idx]
-                        img_ori_ws = batch['image_ori_ws'][idx]
-                        img_ori_hs = batch['image_ori_hs'][idx]
-                        
-                        outputs = postprocessing(
-                            outputs, 
-                            current_img_size=[img_w, img_h],
-                            ori_img_size=[img_ori_ws, img_ori_hs],
-                            min_iou=self.min_iou,
-                            min_conf=self.min_conf,
-                            max_dets=self.max_dets,
-                            keep_ratio=self.keep_ratio,
-                            output_format='xywh',
-                            mode=self.fusion_mode)
+            for batch in tqdm(videoloader):
+                preds = self.detect.run(batch)
+                ori_imgs = batch['ori_imgs']
 
-                        boxes = outputs['bboxes'] 
-                        labels = outputs['classes']  
-                        scores = outputs['scores']
+                for i in range(len(preds)):
+                    boxes = preds[i]['boxes']
+                    labels = preds[i]['labels']
+                    scores = preds[i]['scores']
+                    ori_img = ori_imgs[i]
 
-                        if self.viz:
-                        # Display all images in batch and write to video   
-                            write_to_video(
-                                ori_img, 
-                                boxes=boxes,
-                                labels=labels,
-                                scores=scores,
-                                imshow=False, 
-                                outvid=self.outvid, 
-                                obj_list=self.class_names)
-                        
-
+                    videowriter.write(ori_img,boxes,labels,scores)
+            
 
 
 def main(args, config):
@@ -265,7 +273,7 @@ def main(args, config):
     print(f"Nubmer of gpus: {num_gpus}")
     print(devices_info)
 
-    pipeline = VideoDetect(args, config)
+    pipeline = Pipeline(args, config)
     pipeline.run()
 
 if __name__ == '__main__':
