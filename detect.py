@@ -69,7 +69,7 @@ class VideoSet:
             print(f"Cannot read frame {self.current_frame_id} from {self.video_info['name']}")
             return None
         else:
-            self.current_frame_id+=1
+            self.current_frame_id = idx+1
         frame = cv2.cvtColor(ori_frame, cv2.COLOR_BGR2RGB).astype(np.float32)
         frame /= 255.0
         if self.transforms is not None:
@@ -80,6 +80,7 @@ class VideoSet:
 
         return {
             'img': inputs,
+            'frame': self.current_frame_id,
             'ori_img': ori_frame,
             'image_ori_w': ori_width,
             'image_ori_h': ori_height,
@@ -94,6 +95,7 @@ class VideoSet:
 
         imgs = torch.stack([s['img'] for s in batch])   
         ori_imgs = [s['ori_img'] for s in batch]
+        frames = [s['frame'] for s in batch]
         image_ori_ws = [s['image_ori_w'] for s in batch]
         image_ori_hs = [s['image_ori_h'] for s in batch]
         image_ws = [s['image_w'] for s in batch]
@@ -103,6 +105,7 @@ class VideoSet:
 
         return {
             'imgs': imgs,
+            'frames': frames,
             'ori_imgs': ori_imgs,
             'image_ori_ws': image_ori_ws,
             'image_ori_hs': image_ori_hs,
@@ -350,6 +353,9 @@ class VideoCounting:
             vehicles_moi_detections_ls[label_id], vehicles_moi_detections_dict[label_id] = \
                 counting_moi((self.polygons_first, self.polygons_last),
                             self.paths, vehicle_tracks[label_id], label_id)
+        
+        print(vehicles_moi_detections_ls)
+        print(vehicles_moi_detections_dict)
 
     
 
@@ -361,6 +367,7 @@ class Pipeline:
         self.video_path = args.input_path
         self.saved_path = args.output_path
         self.cam_config = cam_config
+        self.zone_path = cam_config.zone_path
 
         if os.path.isdir(self.video_path):
             video_names = sorted(os.listdir(self.video_path))
@@ -387,7 +394,17 @@ class Pipeline:
                 videoloader.dataset.video_info,
                 saved_path=self.saved_path,
                 obj_list=self.class_names)
+            
+            videocounter = VideoCounting(
+                class_names = self.class_names,
+                zone_path = os.path.join(self.zone_path, cam_name+".json"))
 
+            obj_dict = {
+                'frames': [],
+                'tracks': [],
+                'labels': [],
+                'boxes': []
+            }
             for batch in tqdm(videoloader):
                 preds = self.detector.run(batch)
                 ori_imgs = batch['ori_imgs']
@@ -396,6 +413,8 @@ class Pipeline:
                     boxes = preds['boxes'][i]
                     labels = preds['labels'][i]
                     scores = preds['scores'][i]
+                    frame_id = preds['frames'][i]
+
                     ori_img = ori_imgs[i]
                     
                     track_result = self.tracker.run(ori_img, boxes, labels, scores, 0)
@@ -405,6 +424,18 @@ class Pipeline:
                         boxes = track_result['boxes'],
                         labels = track_result['labels'],
                         tracks = track_result['tracks'])
+
+                    for j in range(len(track_result['boxes'])):
+                        obj_dict['frames'].append(frame_id)
+                        obj_dict['tracks'].append(track_result['tracks'][j])
+                        obj_dict['labels'].append(track_result['labels'][j])
+                        obj_dict['boxes'].append(track_result['boxes'][j])
+
+            videocounter.run(
+                frames = obj_dict['frames'],
+                tracks = obj_dict['tracks'], 
+                labels = obj_dict['labels'],
+                boxes = obj_dict['boxes'])
             
 
 
