@@ -14,7 +14,7 @@ from albumentations.pytorch.transforms import ToTensorV2
 from augmentations.transforms import get_resize_augmentation
 from augmentations.transforms import MEAN, STD
 from models.deepsort.deep_sort import DeepSort
-from .count import check_bbox_intersect_polygon, counting_moi, load_zone_anno
+from utils.counting import check_bbox_intersect_polygon, counting_moi, load_zone_anno, run_plan_in
 
 parser = argparse.ArgumentParser(description='Perfom Objet Detection')
 parser.add_argument('--weight', type=str, default = None,help='version of EfficentDet')
@@ -228,7 +228,9 @@ class VideoDetect:
                     mode=self.fusion_mode)
 
                 boxes = outputs['bboxes'] 
-                labels = outputs['classes']  
+
+                # Label starts from 0
+                labels = outputs['classes'] 
                 scores = outputs['scores']
 
                 boxes_result.append(boxes)
@@ -262,7 +264,7 @@ class VideoTracker:
                 nn_budget=cam_cfg['NN_BUDGET'],
                 use_cuda=1)
 
-    def run(self, image, boxes, labels, scores, frame_id):
+    def run(self, image, boxes, labels, scores):
         # Dict to save object's tracks per class
         # boxes: xywh
         self.obj_track = [{} for i in range(self.num_classes)]
@@ -275,21 +277,18 @@ class VideoTracker:
         bbox_xyxy[:, 2] += bbox_xyxy[:, 0]
         bbox_xyxy[:, 3] += bbox_xyxy[:, 1]
 
-        # class index starts from 1
-        labels = labels - 1
-
         result_dict = {
             'tracks': [],
             'boxes': [],
             'labels': [],
             'scores': []
         }
-
+        labels__ = labels.copy() - 1
         for i in range(self.num_classes):
-            mask = (labels == i)     
+            mask = (labels__ == i)     
             bbox_xyxy_ = bbox_xyxy[mask]
             scores_ = scores[mask]
-            labels_ = labels[mask]
+            labels_ = labels__[mask]
 
             if len(labels_) > 0:
 
@@ -302,7 +301,7 @@ class VideoTracker:
                     box[3] = box[3] - box[1]
                     result_dict['tracks'].append(obj[4])
                     result_dict['boxes'].append(box)
-                    result_dict['labels'].append(i)
+                    result_dict['labels'].append(i+1)
                     # result_dict['scores'].append(obj[6])
 
         result_dict['boxes'] = np.array(result_dict['boxes'])
@@ -313,11 +312,11 @@ class VideoCounting:
     def __init__(self, class_names, zone_path, minimum_length=4) -> None:
         self.class_names = class_names
         self.num_classes = len(class_names)
-        self.track_dict_ls = [{} * self.num_classes]
+        self.track_dict_ls = [{} for i in range(self.num_classes)]
         self.minimum_length = minimum_length
+        self.zone_path = zone_path
         self.polygons_first, self.polygons_last, self.paths, self.polygons = load_zone_anno(zone_path)
-    
-
+     
     def run(self, frames, tracks, labels, boxes):
         for (frame_id, track_id, label_id, box) in zip(frames, tracks, labels, boxes):
             for _, polygon in self.polygons.items():
@@ -325,15 +324,15 @@ class VideoCounting:
                     if track_id not in self.track_dict_ls[label_id].keys():
                         # find obj id which intersect with polygons
                         self.track_dict_ls[label_id][track_id] = []
-                    self.track_dict_ls[label_id][track_id].append((box, frame_id))
+                    self.track_dict_ls[label_id][track_id].append((box[0], box[1], box[2], box[3], frame_id))
 
         # Remove tracks that have short length
-        for label_id in range(self.num_classes):
-            for track_id in self.track_dict_ls[label_id].keys():
-                if len(self.track_dict_ls[label_id][track_id]) < self.minimum_length:
-                    del self.track_dict_ls[label_id][track_id]
+        # for label_id in range(self.num_classes):
+        #     for track_id in self.track_dict_ls[label_id].keys():
+        #         if len(self.track_dict_ls[label_id][track_id]) < self.minimum_length:
+        #             del self.track_dict_ls[label_id][track_id]
         
-        vehicle_tracks = [[]*self.num_classes]
+        vehicle_tracks = [[] for i in range(self.num_classes)]
         for label_id in range(self.num_classes):
             track_dict = self.track_dict_ls[label_id]
             for tracker_id, tracker_list in track_dict.items():
@@ -344,20 +343,66 @@ class VideoCounting:
                     first_point = ((first[2] + first[0])/2,
                                 (first[3] + first[1])/2)
                     last_point = ((last[2] + last[0])/2, (last[3] + last[1])/2)
+                    
                     vehicle_tracks[label_id].append(
                         (first_point, last_point, last[4], tracker_id, first[:4], last[:4]))
+                    
 
-        vehicles_moi_detections_ls = [[] * self.num_classes]
-        vehicles_moi_detections_dict = [{} * self.num_classes]
+        vehicles_moi_detections_ls = [[] for i in range(self.num_classes)]
+        vehicles_moi_detections_dict = [{} for i in range(self.num_classes)]
         for label_id in range(self.num_classes):
+            #(frame_id, movement_id, vehicle_class_id)
             vehicles_moi_detections_ls[label_id], vehicles_moi_detections_dict[label_id] = \
                 counting_moi((self.polygons_first, self.polygons_last),
                             self.paths, vehicle_tracks[label_id], label_id)
-        
-        print(vehicles_moi_detections_ls)
-        print(vehicles_moi_detections_dict)
 
-    
+        draw_dict = {}
+        for label_id in self.track_dict_ls:
+            for track_id in self.track_dict_ls[label_id].keys():
+                x, y, w, h, frame_id = self.track_dict_ls[label_id][track_id]
+              
+                if track_id in vehicles_moi_detections_dict[label_id].keys():
+                    mov_id = vehicles_moi_detections_dict[label_id][track_id][0]
+                    if mov_id == '0':
+                        continue
+                    
+                    start_point = vehicles_moi_detections_dict[label_id][track_id][1][0]
+                    last_point = vehicles_moi_detections_dict[label_id][track_id][1][1]
+                    
+                    start_point = list(map(int, start_point))
+                    last_point = list(map(int, last_point))
+                    g.write(
+                        f'{frame_id} {mov_id} {track_id} {label_id} {x} {y} {w} {h} {start_point[0]} {start_point[1]} {last_point[0]} {last_point[1]}\n')       
+
+                    if frame_id not in draw_dict.keys():
+                        draw_dict[frame_id] = []
+                    draw_dict[frame_id].append(
+                        x, y, x+w, y+h, 
+                        start_point[0], start_point[1], 
+                        last_point[0], last_point[1], 
+                        mov_id, track_id, label_id)
+        
+        count_fuse_db = run_plan_in(draw_dict, self.zone_path)
+        
+        flatten_db = []
+        for key, value in count_fuse_db.items():
+            vehicle_id, movement_id = key.split('_')
+            for track_id, frame_list in value.items():
+                for frame_info in frame_list:
+                    frame_id = frame_info['frame_id']
+                    xmin = frame_info['xmin']
+                    xmax = frame_info['xmax']
+                    ymin = frame_info['ymin']
+                    ymax = frame_info['ymax']
+                    start_frame = frame_list[0]['frame_id']
+                    last_frame = frame_list[-1]['frame_id']
+                    flatten_db.append((frame_id, vehicle_id, movement_id,
+                                    track_id, xmin, ymin, xmax, ymax, start_frame, last_frame))
+
+        flatten_db = sorted(flatten_db, key=lambda x: x[0])
+       
+        print(flatten_db)
+
 
 
 class Pipeline:
@@ -405,7 +450,7 @@ class Pipeline:
                 'labels': [],
                 'boxes': []
             }
-            for batch in tqdm(videoloader):
+            for idx, batch in enumerate(tqdm(videoloader)):
                 preds = self.detector.run(batch)
                 ori_imgs = batch['ori_imgs']
 
@@ -413,11 +458,12 @@ class Pipeline:
                     boxes = preds['boxes'][i]
                     labels = preds['labels'][i]
                     scores = preds['scores'][i]
-                    frame_id = preds['frames'][i]
+                    frame_id = batch['frames'][i]
 
                     ori_img = ori_imgs[i]
                     
-                    track_result = self.tracker.run(ori_img, boxes, labels, scores, 0)
+                    track_result = self.tracker.run(ori_img, boxes, labels, scores)
+                    
 
                     videowriter.write(
                         ori_img,
@@ -430,6 +476,8 @@ class Pipeline:
                         obj_dict['tracks'].append(track_result['tracks'][j])
                         obj_dict['labels'].append(track_result['labels'][j])
                         obj_dict['boxes'].append(track_result['boxes'][j])
+
+            
 
             videocounter.run(
                 frames = obj_dict['frames'],
