@@ -1,3 +1,4 @@
+from random import shuffle
 from utils.getter import *
 import argparse
 import os
@@ -127,6 +128,7 @@ class VideoLoader(DataLoader):
             batch_size= 1,
             num_workers=0,
             pin_memory=True,
+            shuffle=False,
             collate_fn= dataset.collate_fn)
         
 
@@ -148,8 +150,14 @@ class VideoWriter:
             FPS, 
             (WIDTH, HEIGHT))
 
-    def write(self, img, boxes, labels, scores):
-        write_to_video(img, boxes, labels, scores, imshow=False, outvid = self.outvid, obj_list=self.obj_list)
+    def write(self, img, boxes, labels, scores=None, tracks=None):
+        write_to_video(
+            img, boxes, labels, 
+            scores = scores,
+            tracks=tracks, 
+            imshow=False, 
+            outvid = self.outvid, 
+            obj_list=self.obj_list)
         
 
 class VideoDetect:
@@ -228,14 +236,14 @@ class VideoDetect:
             "scores": scores_result }
 
 class VideoTracker:
-    def __init__(self, num_classes, cam_config, video_info):
-        cam_config = cam_config['tracking_config']
+    def __init__(self, num_classes, cam_config, video_info, deepsort_chepoint):
+        tracking_config = cam_config["tracking_config"]
         self.num_classes = num_classes 
         self.video_info = video_info
         self.NUM_CLASSES = video_info['num_frames']
 
         ## Build up a tracker for each class
-        self.deepsort = [self.build_tracker(cam_config['checkpoint'], cam_config) for i in range(num_classes)]
+        self.deepsort = [self.build_tracker(deepsort_chepoint, tracking_config) for i in range(num_classes)]
 
     def build_tracker(self, checkpoint, cam_cfg):
         return DeepSort(
@@ -283,20 +291,27 @@ class VideoTracker:
                 # output: x1,y1,x2,y2,track_id, track_feat, score
                 outputs = self.deepsort[i].update(bbox_xyxy_, scores_, image)
                 
-                result_dict['tracks'].append(outputs[4])
-                result_dict['boxes'].append(outputs[:4])
-                result_dict['labels'].append(outputs[i])
-                result_dict['scores'].append(outputs[6])
+                for obj in outputs:
+                    box = obj[:4]
+                    box[2] = box[2] - box[0]
+                    box[3] = box[3] - box[1]
+                    result_dict['tracks'].append(obj[4])
+                    result_dict['boxes'].append(box)
+                    result_dict['labels'].append(i)
+                    # result_dict['scores'].append(obj[6])
 
+        result_dict['boxes'] = np.array(result_dict['boxes'])
+        
         return result_dict
                 
 
 class Pipeline:
-    def __init__(self, args, config):
+    def __init__(self, args, config, cam_config):
         self.detector = VideoDetect(args, config)
         self.class_names = self.detector.class_names
         self.video_path = args.input_path
         self.saved_path = args.output_path
+        self.cam_config = cam_config
 
         if os.path.isdir(self.video_path):
             video_names = sorted(os.listdir(self.video_path))
@@ -304,13 +319,20 @@ class Pipeline:
         else:
             self.all_video_paths = [self.video_path]
 
+    def get_cam_name(self, path):
+        filename = os.path.basename(path)
+        cam_name = filename[:-4]
+        return cam_name
+
     def run(self):
         for video_path in self.all_video_paths:
+            cam_name = self.get_cam_name(video_path)
             videoloader = VideoLoader(config, video_path)
             self.tracker = VideoTracker(
                 len(self.class_names),
-
-            ) run(self, image, boxes, labels, scores, frame_id):
+                self.cam_config.cam[cam_name],
+                videoloader.dataset.video_info,
+                deepsort_chepoint=self.cam_config.checkpoint)
 
             videowriter = VideoWriter(
                 videoloader.dataset.video_info,
@@ -326,8 +348,14 @@ class Pipeline:
                     labels = preds['labels'][i]
                     scores = preds['scores'][i]
                     ori_img = ori_imgs[i]
+                    
+                    track_result = self.tracker.run(ori_img, boxes, labels, scores, 0)
 
-                    videowriter.write(ori_img,boxes,labels,scores)
+                    videowriter.write(
+                        ori_img,
+                        boxes = track_result['boxes'],
+                        labels = track_result['labels'],
+                        tracks = track_result['tracks'])
             
 
 
@@ -346,7 +374,8 @@ def main(args, config):
     print(f"Nubmer of gpus: {num_gpus}")
     print(devices_info)
 
-    pipeline = Pipeline(args, config)
+    cam_config = Config(os.path.join('configs', 'cam_configs.yaml'))             
+    pipeline = Pipeline(args, config, cam_config)
     pipeline.run()
 
 if __name__ == '__main__':
@@ -361,11 +390,13 @@ if __name__ == '__main__':
         'tta_conf_threshold',
         'tta_iou_threshold',
     ]
+
     config = get_config(args.weight, ignore_keys)
     if config is None:
         print("Config not found. Load configs from configs/configs.yaml")
         config = Config(os.path.join('configs','configs.yaml'))
     else:
-        print("Load configs from weight")                 
+        print("Load configs from weight")    
+
     main(args, config)
     
