@@ -1,4 +1,5 @@
 settings:
+  zone_path: "./data/aicity21/zone"
   checkpoint: "./models/deepsort/deep/checkpoint/ckpt.t7"
   cam:
     cam_1:
