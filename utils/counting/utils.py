@@ -6,6 +6,7 @@ import os
 import random
 import sys
 from tqdm import tqdm
+from .bb_polygon import *
 
 def random_color():
     rgbl = [255, 0, 0]
@@ -279,3 +280,62 @@ def load_zone_anno(json_filename):
                 for idx in ls_id:
                     masks[int(idx)] = mask
     return polygons_first, polygons_last, paths, masks
+
+def counting_moi(polypack, paths, vehicle_vector_list, class_id):
+    """
+    Args:
+      paths: List of MOI - (first_point, last_point)
+      vehicle_vector_list: List of tuples (first_point, last_point, last_frame_id, track_id, bbox start, bbox last)
+
+    Returns:
+      A list of tuples (frame_id, movement_id, vehicle_class_id)
+      A dict of tuples (frame_id, movement_id, vehicle_class_id)
+    """
+    moi_detection_list = []
+    moi_detection_dict = {}
+    movement_label = ''
+    polygons_first, polygons_last = polypack
+    # for vehicle_vector in vehicle_vector_list[:5]:
+
+    for vehicle_vector in vehicle_vector_list:
+        max_cosin = -2
+        movement_id = ''
+        last_frame = 0
+        cosin = 0
+        labels = []
+        for label, polygon in polygons_last.items():
+            labels = label.split('_')
+            if check_bbox_intersect_polygon(polygon, vehicle_vector[5]):
+                break
+
+        for label2, polygon2 in polygons_first.items():
+            labels2 = label2.split('_')
+
+            if is_point_in_polygon(polygon2, vehicle_vector[0]):
+
+                # if vehicle_vector[3] == 11:
+                #     import pdb
+                #     pdb.set_trace()
+                for i in range(len(labels)):
+                    if not(labels[i] in labels2):
+                        labels[i] = ''
+                break
+
+        for movement_label, movement_vector in paths.items():
+            if not(movement_label in labels):
+                continue
+            cosin = cosin_similarity(movement_vector, vehicle_vector)
+            if cosin > max_cosin:
+                max_cosin = cosin
+                movement_id = movement_label
+                last_frame = vehicle_vector[2]
+        # print('==============')
+        # if max_cosin < 0.5 or np.isnan(cosin):
+        if np.isnan(cosin):
+            continue
+        if movement_id == '':
+            movement_id = '0'
+        moi_detection_dict[vehicle_vector[3]] = (
+            movement_id, vehicle_vector[:2])
+        moi_detection_list.append((last_frame, movement_id, class_id))
+    return moi_detection_list, moi_detection_dict
