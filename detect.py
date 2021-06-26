@@ -3,6 +3,7 @@ from utils.getter import *
 import argparse
 import os
 import cv2
+import json
 import torch
 from torch.utils.data import Dataset, DataLoader
 from utils.utils import draw_boxes_v2, write_to_video
@@ -13,6 +14,7 @@ from albumentations.pytorch.transforms import ToTensorV2
 from augmentations.transforms import get_resize_augmentation
 from augmentations.transforms import MEAN, STD
 from models.deepsort.deep_sort import DeepSort
+from .count import check_bbox_intersect_polygon, counting_moi, load_zone_anno
 
 parser = argparse.ArgumentParser(description='Perfom Objet Detection')
 parser.add_argument('--weight', type=str, default = None,help='version of EfficentDet')
@@ -304,6 +306,53 @@ class VideoTracker:
         
         return result_dict
                 
+class VideoCounting:
+    def __init__(self, class_names, zone_path, minimum_length=4) -> None:
+        self.class_names = class_names
+        self.num_classes = len(class_names)
+        self.track_dict_ls = [{} * self.num_classes]
+        self.minimum_length = minimum_length
+        self.polygons_first, self.polygons_last, self.paths, self.polygons = load_zone_anno(zone_path)
+    
+
+    def run(self, frames, tracks, labels, boxes):
+        for (frame_id, track_id, label_id, box) in zip(frames, tracks, labels, boxes):
+            for _, polygon in self.polygons.items():
+                if check_bbox_intersect_polygon(polygon, box):
+                    if track_id not in self.track_dict_ls[label_id].keys():
+                        # find obj id which intersect with polygons
+                        self.track_dict_ls[label_id][track_id] = []
+                    self.track_dict_ls[label_id][track_id].append((box, frame_id))
+
+        # Remove tracks that have short length
+        for label_id in range(self.num_classes):
+            for track_id in self.track_dict_ls[label_id].keys():
+                if len(self.track_dict_ls[label_id][track_id]) < self.minimum_length:
+                    del self.track_dict_ls[label_id][track_id]
+        
+        vehicle_tracks = [[]*self.num_classes]
+        for label_id in range(self.num_classes):
+            track_dict = self.track_dict_ls[label_id]
+            for tracker_id, tracker_list in track_dict.items():
+                if len(tracker_list) > 1:
+                    first = tracker_list[0]
+                    last = tracker_list[-1]
+                    # Get center point of first box and last box
+                    first_point = ((first[2] + first[0])/2,
+                                (first[3] + first[1])/2)
+                    last_point = ((last[2] + last[0])/2, (last[3] + last[1])/2)
+                    vehicle_tracks[label_id].append(
+                        (first_point, last_point, last[4], tracker_id, first[:4], last[:4]))
+
+        vehicles_moi_detections_ls = [[] * self.num_classes]
+        vehicles_moi_detections_dict = [{} * self.num_classes]
+        for label_id in range(self.num_classes):
+            vehicles_moi_detections_ls[label_id], vehicles_moi_detections_dict[label_id] = \
+                counting_moi((self.polygons_first, self.polygons_last),
+                            self.paths, vehicle_tracks[label_id], label_id)
+
+    
+
 
 class Pipeline:
     def __init__(self, args, config, cam_config):
