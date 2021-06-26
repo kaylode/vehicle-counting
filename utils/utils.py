@@ -174,7 +174,7 @@ def write_to_video(img, boxes, labels, scores=None, tracks=None, imshow=True,  o
                 img, 
                 box, 
                 key=f'id: {track}',
-                value=label,
+                value=f'cls: {label}',
                 color=color_list[int(label)])
 
     if imshow:
