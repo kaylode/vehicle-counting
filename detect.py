@@ -179,13 +179,12 @@ class VideoDetect:
             args, config,
             num_classes=num_classes)
 
+        self.num_classes = num_classes
         self.model = Detector(model = net, device = self.device)
         self.model.eval()
 
         if args.weight is not None:                
             load_checkpoint(self.model, args.weight)
-
-        self.load_videos()
 
     def run(self, batch):
         with torch.no_grad():
@@ -228,10 +227,76 @@ class VideoDetect:
             "labels": labels_result,
             "scores": scores_result }
 
+class VideoTracker:
+    def __init__(self, num_classes, cam_config, video_info):
+        cam_config = cam_config['tracking_config']
+        self.num_classes = num_classes 
+        self.video_info = video_info
+        self.NUM_CLASSES = video_info['num_frames']
+
+        ## Build up a tracker for each class
+        self.deepsort = [self.build_tracker(cam_config['checkpoint'], cam_config) for i in range(num_classes)]
+
+    def build_tracker(self, checkpoint, cam_cfg):
+        return DeepSort(
+                checkpoint, 
+                max_dist=cam_cfg['MAX_DIST'],
+                min_confidence=cam_cfg['MIN_CONFIDENCE'], 
+                nms_max_overlap=cam_cfg['NMS_MAX_OVERLAP'],
+                max_iou_distance=cam_cfg['MAX_IOU_DISTANCE'], 
+                max_age=cam_cfg['MAX_AGE'],
+                n_init=cam_cfg['N_INIT'],
+                nn_budget=cam_cfg['NN_BUDGET'],
+                use_cuda=1)
+
+    def run(self, image, boxes, labels, scores, frame_id):
+        # Dict to save object's tracks per class
+        # boxes: xywh
+        self.obj_track = [{} for i in range(self.num_classes)]
+
+        ## Draw polygons to frame
+         
+        # cv2.putText(im_moi,str(frame_id), (10,30), cv2.FONT_HERSHEY_SIMPLEX , 1 , (255,255,0) , 2)
+
+        bbox_xyxy = boxes.copy()
+        bbox_xyxy[:, 2] += bbox_xyxy[:, 0]
+        bbox_xyxy[:, 3] += bbox_xyxy[:, 1]
+
+        # class index starts from 1
+        labels = labels - 1
+
+        result_dict = {
+            'tracks': [],
+            'boxes': [],
+            'labels': [],
+            'scores': []
+        }
+
+        for i in range(self.num_classes):
+            mask = (labels == i)     
+            bbox_xyxy_ = bbox_xyxy[mask]
+            scores_ = scores[mask]
+            labels_ = labels[mask]
+
+            if len(labels_) > 0:
+
+                # output: x1,y1,x2,y2,track_id, track_feat, score
+                outputs = self.deepsort[i].update(bbox_xyxy_, scores_, image)
+                
+                result_dict['tracks'].append(outputs[4])
+                result_dict['boxes'].append(outputs[:4])
+                result_dict['labels'].append(outputs[i])
+                result_dict['scores'].append(outputs[6])
+
+        return result_dict
+                
+
 class Pipeline:
     def __init__(self, args, config):
-        self.detect = VideoDetect(args, config)
-        self.video_path = args.video_path
+        self.detector = VideoDetect(args, config)
+        self.class_names = self.detector.class_names
+        self.video_path = args.input_path
+        self.saved_path = args.output_path
 
         if os.path.isdir(self.video_path):
             video_names = sorted(os.listdir(self.video_path))
@@ -242,16 +307,24 @@ class Pipeline:
     def run(self):
         for video_path in self.all_video_paths:
             videoloader = VideoLoader(config, video_path)
-            videowriter = VideoWriter(videoloader.dataset.video_info)
+            self.tracker = VideoTracker(
+                len(self.class_names),
+
+            ) run(self, image, boxes, labels, scores, frame_id):
+
+            videowriter = VideoWriter(
+                videoloader.dataset.video_info,
+                saved_path=self.saved_path,
+                obj_list=self.class_names)
 
             for batch in tqdm(videoloader):
-                preds = self.detect.run(batch)
+                preds = self.detector.run(batch)
                 ori_imgs = batch['ori_imgs']
 
-                for i in range(len(preds)):
-                    boxes = preds[i]['boxes']
-                    labels = preds[i]['labels']
-                    scores = preds[i]['scores']
+                for i in range(len(ori_imgs)):
+                    boxes = preds['boxes'][i]
+                    labels = preds['labels'][i]
+                    scores = preds['scores'][i]
                     ori_img = ori_imgs[i]
 
                     videowriter.write(ori_img,boxes,labels,scores)
