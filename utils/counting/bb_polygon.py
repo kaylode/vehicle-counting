@@ -1,3 +1,5 @@
+import numpy as np
+
 # Idea:  
 # 1) Draw a horizontal line to the right of each point and extend it to infinity
 
@@ -97,26 +99,26 @@ def is_bounding_box_intersect(bounding_box, polygon):
 			return True
 	return False
 
-# def main():
-# 	polygon1 = ((0, 0), (10, 0), (10, 10), (0, 10)) 
-# 	p = (20, 20)
-# 	print(is_point_in_polygon(polygon1, p))
-  
-# 	p = (5, 5) 
-# 	print(is_point_in_polygon(polygon1, p))
+def check_bbox_intersect_polygon(polygon, bbox):
+	"""
 
-# 	polygon2 = ((0, 0), (5, 5), (5, 0))
-# 	p = (3, 3) 
-# 	print(is_point_in_polygon(polygon2, p))
+	Args:
+	polygon: List of points (x,y)
+	bbox: A tuple (xmin, ymin, xmax, ymax)
 
-# 	p = (5, 1) 
-# 	print(is_point_in_polygon(polygon2, p))
+	Returns:
+	True if the bbox intersect the polygon
+	"""
+	x1, y1, x2, y2 = bbox
+	bb = [(x1, y1), (x2, y1), (x2, y2), (x1, y2)]
+	return is_bounding_box_intersect(bb, polygon)
 
-# 	p = (8, 1) 
-# 	print(is_point_in_polygon(polygon2, p))
 
-# 	polygon3 =  ((0, 0), (10, 0), (10, 10), (0, 10))
-# 	p = (-1,10)
-# 	print(is_point_in_polygon(polygon3, p))
-  
-# main()
+def cosin_similarity(a2d, b2d, debug=False):
+	a = np.array((a2d[1][0] - a2d[0][0], a2d[1][1] - a2d[0][1])).astype(float)
+	b = np.array((b2d[1][0] - b2d[0][0], b2d[1][1] - b2d[0][1])).astype(float)
+	tmp1 = np.dot(a, b)
+	tmp2 = (np.linalg.norm(a)*np.linalg.norm(b*1.0))
+	if debug:
+		print(a, b, tmp1, tmp2)
+	return tmp1/tmp2
