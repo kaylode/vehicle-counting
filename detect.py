@@ -371,9 +371,7 @@ class VideoCounting:
                     
                     start_point = list(map(int, start_point))
                     last_point = list(map(int, last_point))
-                    g.write(
-                        f'{frame_id} {mov_id} {track_id} {label_id} {x} {y} {w} {h} {start_point[0]} {start_point[1]} {last_point[0]} {last_point[1]}\n')       
-
+                    
                     if frame_id not in draw_dict.keys():
                         draw_dict[frame_id] = []
                     draw_dict[frame_id].append(
@@ -382,7 +380,7 @@ class VideoCounting:
                         last_point[0], last_point[1], 
                         mov_id, track_id, label_id)
         
-        count_fuse_db = run_plan_in(draw_dict, self.zone_path)
+        count_fuse_db = run_plan_in(draw_dict, self.polygons)
         
         flatten_db = []
         for key, value in count_fuse_db.items():

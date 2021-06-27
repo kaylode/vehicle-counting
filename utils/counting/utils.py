@@ -1,3 +1,4 @@
+from matplotlib.pyplot import draw
 import numpy as np
 import cv2
 import json
@@ -340,55 +341,43 @@ def counting_moi(polypack, paths, vehicle_vector_list, class_id):
         moi_detection_list.append((last_frame, movement_id, class_id))
     return moi_detection_list, moi_detection_dict
 
-def run_plan_in(draw_dict, json_anno_path):
-    # vdo = [os.path.join(inpath, x) for x in os.listdir(inpath)]
-    # vdo.sort()
-    # vdo = vdo[:]
-    # if debug:
-    #     vdo = vdo[:3000]
-    pbar = (range(18000))
-    frame_id = 0
-    _, _, paths, polygons = load_zone_anno(json_anno_path)
-
+def run_plan_in(draw_dict, polygons):
     count_database = {}
-    for path in pbar:
-        if frame_id in draw_dict.keys():
-            ls = draw_dict[frame_id]
-            for i, box in enumerate(ls):
-                xmin, ymin, xmax, ymax, start_point_x, start_point_y, last_point_x, last_point_y, move_id, track_id, label_id = [
-                    int(i) for i in box]
-                bbox_xyxy = (xmin, ymin, xmax, ymax)
+    for frame_id in tqdm(draw_dict.keys()):
+        ls = draw_dict[frame_id]
+        for box in ls:
+            xmin, ymin, xmax, ymax, start_point_x, start_point_y, last_point_x, last_point_y, move_id, track_id, label_id = [
+                int(i) for i in box]
 
-                start_point = (start_point_x, start_point_y)
-                last_point = (last_point_x, last_point_y)
-                for label, polygon in polygons.items():
-                    polygon_edges = [(polygon[i], polygon[(i+1) % len(polygon)])
-                                     for i in range(len(polygon)-1)]
-                    flag_intersect = False
-                    bbox_tmp = [(x, y) for x in [xmin, xmax]
-                                for y in [ymin, ymax]]
-                    flag_intersect = is_bounding_box_intersect(
-                        bbox_tmp, polygon)
-                    for edge in polygon_edges:
-                        if is_intersect(edge[0], edge[1], start_point, last_point):
-                            flag_intersect = True
-                            break
-                    if not(flag_intersect):
-                        continue
-                    key_database = f'{label_id}_{move_id}'
-                    if key_database not in count_database:
-                        count_database[key_database] = {}
-                    if not is_point_in_polygon(polygon, start_point) and flag_intersect:
-                        if track_id not in count_database[key_database].keys():
-                            count_database[key_database][track_id] = []
-                        count_database[key_database][track_id].append({
-                            'frame_id': frame_id,
-                            'xmin': xmin,
-                            'xmax': xmax,
-                            'ymin': ymin,
-                            'ymax': ymax,
-                        })
+            start_point = (start_point_x, start_point_y)
+            last_point = (last_point_x, last_point_y)
+            for _, polygon in polygons.items():
+                polygon_edges = [(polygon[i], polygon[(i+1) % len(polygon)])
+                                    for i in range(len(polygon)-1)]
+                flag_intersect = False
+                bbox_tmp = [(x, y) for x in [xmin, xmax]
+                            for y in [ymin, ymax]]
+                flag_intersect = is_bounding_box_intersect(
+                    bbox_tmp, polygon)
+                for edge in polygon_edges:
+                    if is_intersect(edge[0], edge[1], start_point, last_point):
+                        flag_intersect = True
+                        break
+                if not(flag_intersect):
+                    continue
+                key_database = f'{label_id}_{move_id}'
+                if key_database not in count_database:
+                    count_database[key_database] = {}
+                if not is_point_in_polygon(polygon, start_point) and flag_intersect:
+                    if track_id not in count_database[key_database].keys():
+                        count_database[key_database][track_id] = []
+                    count_database[key_database][track_id].append({
+                        'frame_id': frame_id,
+                        'xmin': xmin,
+                        'xmax': xmax,
+                        'ymin': ymin,
+                        'ymax': ymax,
+                    })
 
-        frame_id += 1
-    # json.dump(count_database, open(output_count_path, 'wt'))
+    
     return count_database

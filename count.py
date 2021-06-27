@@ -13,58 +13,7 @@ import argparse
 from time import time
 
 
-def run_plan_in(draw_dict, inpath, output_count_path, json_anno_path, debug=False):
-    # vdo = [os.path.join(inpath, x) for x in os.listdir(inpath)]
-    # vdo.sort()
-    # vdo = vdo[:]
-    # if debug:
-    #     vdo = vdo[:3000]
-    pbar = (range(18000))
-    frame_id = 0
-    _, _, paths, polygons = load_zone_anno(json_anno_path)
 
-    count_database = {}
-    for path in pbar:
-        if frame_id in draw_dict.keys():
-            ls = draw_dict[frame_id]
-            for i, box in enumerate(ls):
-                xmin, ymin, xmax, ymax, start_point_x, start_point_y, last_point_x, last_point_y, move_id, track_id, label_id = [
-                    int(i) for i in box]
-                bbox_xyxy = (xmin, ymin, xmax, ymax)
-
-                start_point = (start_point_x, start_point_y)
-                last_point = (last_point_x, last_point_y)
-                for label, polygon in polygons.items():
-                    polygon_edges = [(polygon[i], polygon[(i+1) % len(polygon)])
-                                     for i in range(len(polygon)-1)]
-                    flag_intersect = False
-                    bbox_tmp = [(x, y) for x in [xmin, xmax]
-                                for y in [ymin, ymax]]
-                    flag_intersect = is_bounding_box_intersect(
-                        bbox_tmp, polygon)
-                    for edge in polygon_edges:
-                        if is_intersect(edge[0], edge[1], start_point, last_point):
-                            flag_intersect = True
-                            break
-                    if not(flag_intersect):
-                        continue
-                    key_database = f'{label_id}_{move_id}'
-                    if key_database not in count_database:
-                        count_database[key_database] = {}
-                    if not is_point_in_polygon(polygon, start_point) and flag_intersect:
-                        if track_id not in count_database[key_database].keys():
-                            count_database[key_database][track_id] = []
-                        count_database[key_database][track_id].append({
-                            'frame_id': frame_id,
-                            'xmin': xmin,
-                            'xmax': xmax,
-                            'ymin': ymin,
-                            'ymax': ymax,
-                        })
-
-        frame_id += 1
-    # json.dump(count_database, open(output_count_path, 'wt'))
-    return count_database
 
 
 def unpack(line, unwarp=0):
@@ -190,9 +139,13 @@ def run_all(args, cam_id, track_filename, viz=False, start=0):
 
     with open(movement_path) as f:
         lines = f.readlines()
+
+    # draw_dict[frame_id] = [
+                #(xmin, ymin, xmax, ymax, start_point_x, start_point_y, last_point_x, last_point_y, move_id, obj_id, cls_id)]
+        
     draw_dict = get_dict(lines)
     count_fuse_db = run_plan_in(
-        draw_dict, imgs_path, f'./json/count_{cam_id}.json', json_anno_path, False)
+        draw_dict, json_anno_path)
 
     
     video_id = f'cam_{cam_id}'
