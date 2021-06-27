@@ -43,9 +43,9 @@ class VideoSet:
             ToTensorV2(p=1.0)
         ])
 
-        self.get_video_info()
+        self.initialize_stream()
 
-    def get_video_info(self):
+    def initialize_stream(self):
         self.stream = cv2.VideoCapture(self.input_path)
         self.current_frame_id = 0
         self.video_info = {}
@@ -138,6 +138,9 @@ class VideoLoader(DataLoader):
             pin_memory=True,
             shuffle=False,
             collate_fn= dataset.collate_fn)
+
+    def reinitialize_stream(self):
+        self.dataset.initialize_stream()
         
 
 class VideoWriter:
@@ -504,6 +507,7 @@ class Pipeline:
                     labels = obj_dict['labels'],
                     boxes = obj_dict['boxes'])
 
+            videoloader.reinitialize_stream()
             videowriter.write_full_to_video(
                     videoloader,
                     flatten_db=flatten_db, 
