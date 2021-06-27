@@ -169,14 +169,14 @@ class VideoWriter:
 
     def write_full_to_video(
         self,
-        ori_imgs,
+        videoloader,
         flatten_db, 
         polygons_first, 
         polygons_last, 
         paths, polygons):
 
         visualize_merged(
-            ori_imgs, self.NUM_FRAMES, self.outvid,
+            videoloader, self.NUM_FRAMES, self.outvid,
             flatten_db = flatten_db,
             polygons_first = polygons_first,
             polygons_last = polygons_last,
@@ -380,12 +380,12 @@ class VideoCounting:
         for label_id in range(len(self.track_dict_ls)):
             for track_id in self.track_dict_ls[label_id].keys():
                 for x, y, w, h, frame_id in self.track_dict_ls[label_id][track_id]:
-                    print("track_id:", str(track_id))
+                   
                     if track_id in vehicles_moi_detections_dict[label_id].keys():
                         mov_id = vehicles_moi_detections_dict[label_id][track_id][0]
                         if mov_id == '0':
                             continue
-                        print("mov_id:", str(mov_id))
+                       
                         start_point = vehicles_moi_detections_dict[label_id][track_id][1][0]
                         last_point = vehicles_moi_detections_dict[label_id][track_id][1][1]
                         
@@ -418,7 +418,7 @@ class VideoCounting:
                                     track_id, xmin, ymin, xmax, ymax, start_frame, last_frame))
 
         flatten_db = sorted(flatten_db, key=lambda x: x[0])
-
+        return flatten_db
         # list of (frame_id, label_id, mov_id, track_id, xmin, xmax, ymin, ymax, start_frame, last_frame)
         
 
@@ -469,6 +469,8 @@ class Pipeline:
                 'labels': [],
                 'boxes': []
             }
+
+            all_ori_imgs = []
             for idx, batch in enumerate(tqdm(videoloader)):
                 preds = self.detector.run(batch)
                 ori_imgs = batch['ori_imgs']
@@ -480,15 +482,15 @@ class Pipeline:
                     frame_id = batch['frames'][i]
 
                     ori_img = ori_imgs[i]
-                    
+                    all_ori_imgs.append(ori_img)
                     track_result = self.tracker.run(ori_img, boxes, labels, scores)
                     
 
-                    videowriter.write(
-                        ori_img,
-                        boxes = track_result['boxes'],
-                        labels = track_result['labels'],
-                        tracks = track_result['tracks'])
+                    # videowriter.write(
+                    #     ori_img,
+                    #     boxes = track_result['boxes'],
+                    #     labels = track_result['labels'],
+                    #     tracks = track_result['tracks'])
 
                     for j in range(len(track_result['boxes'])):
                         obj_dict['frames'].append(frame_id)
@@ -498,11 +500,19 @@ class Pipeline:
 
             
 
-            videocounter.run(
-                frames = obj_dict['frames'],
-                tracks = obj_dict['tracks'], 
-                labels = obj_dict['labels'],
-                boxes = obj_dict['boxes'])
+            flatten_db = videocounter.run(
+                    frames = obj_dict['frames'],
+                    tracks = obj_dict['tracks'], 
+                    labels = obj_dict['labels'],
+                    boxes = obj_dict['boxes'])
+
+            videowriter.write_full_to_video(
+                    videoloader,
+                    flatten_db=flatten_db, 
+                    polygons_first = videocounter.polygons_first, 
+                    polygons_last =videocounter.polygons_last, 
+                    paths = videocounter.paths, 
+                    polygons = videocounter.polygons)
             
 
 

@@ -78,7 +78,7 @@ def get_dict(lines):
 
 
 def visualize_merged(
-    ori_imgs,
+    videoloader,
     num_frames,
     outvid,
     flatten_db, 
@@ -96,7 +96,6 @@ def visualize_merged(
               (255, 255, 255)]  # white  6
 
     # {label_id: {track_id: (move_id, start_frame, end_frame)}}
-    frame_id = 0
     track_db = {}  
     total_count = {}
     frame_count = {}
@@ -104,68 +103,72 @@ def visualize_merged(
         key = int(key)
         total_count[key] = 0
         frame_count[key] = 0
-    for frame_id in range(num_frames):
-        frame_id += 1
-        ori_im = ori_imgs[frame_id-1].copy()
-        text = ''
-        for key in list(total_count.keys()):
-            total_count[key] += frame_count[key]
-            frame_count[key] = 0
-            text = text + '| direction{}: {}'.format(key, total_count[key])
-        try:
-            draw_text(ori_im, text)
-        except:
-            pass
+    
+    frame_id = 0
+    for batch in videoloader:
+        ori_imgs = batch['ori_imgs']
+        for ori_img in ori_imgs:
+            frame_id += 1
+            ori_im = ori_img.copy()
+            text = ''
+            for key in list(total_count.keys()):
+                total_count[key] += frame_count[key]
+                frame_count[key] = 0
+                text = text + '| direction{}: {}'.format(key, total_count[key])
+            try:
+                draw_text(ori_im, text)
+            except:
+                pass
 
-        for label, polygon in polygons.items():
-            # draw_anno(ori_im, polygon, paths)
-            draw_anno(ori_im, polygon)
+            for label, polygon in polygons.items():
+                # draw_anno(ori_im, polygon, paths)
+                draw_anno(ori_im, polygon)
 
-        for label, trigger in polygons_last.items():
-            polygon = np.array(trigger, np.int32)
-            polygon = polygon.reshape((-1, 1, 2))
-            cv2.polylines(ori_im, [polygon], True, (255, 255, 0), 3)
+            for label, trigger in polygons_last.items():
+                polygon = np.array(trigger, np.int32)
+                polygon = polygon.reshape((-1, 1, 2))
+                cv2.polylines(ori_im, [polygon], True, (255, 255, 0), 3)
 
-        for label, trigger in polygons_first.items():
-            polygon = np.array(trigger, np.int32)
-            polygon = polygon.reshape((-1, 1, 2))
-            cv2.polylines(ori_im, [polygon], True, (255, 255, 255), 3)
+            for label, trigger in polygons_first.items():
+                polygon = np.array(trigger, np.int32)
+                polygon = polygon.reshape((-1, 1, 2))
+                cv2.polylines(ori_im, [polygon], True, (255, 255, 255), 3)
 
-        db_index = 0
-        while True:
-            if not(db_index < len(flatten_db)):
-                break
-            db_frame_id, vehicle_id, movement_id, obj_id, xmin, ymin, xmax, ymax, start_frame, last_frame = [
-                int(x) for x in flatten_db[db_index]]
-            if frame_id != db_frame_id:
-                break
-            bbox_xyxy = (xmin, ymin, xmax, ymax)
-            ori_im = draw_bbox(ori_im, bbox_xyxy,
-                            vehicle_id, movement_id, obj_id)
+            db_index = 0
+            while True:
+                if not(db_index < len(flatten_db)):
+                    break
+                db_frame_id, vehicle_id, movement_id, obj_id, xmin, ymin, xmax, ymax, start_frame, last_frame = [
+                    int(x) for x in flatten_db[db_index]]
+                if frame_id != db_frame_id:
+                    break
+                bbox_xyxy = (xmin, ymin, xmax, ymax)
+                ori_im = draw_bbox(ori_im, bbox_xyxy,
+                                vehicle_id, movement_id, obj_id)
 
-            if vehicle_id not in track_db.keys():
-                track_db[vehicle_id] = {}
-            if obj_id not in track_db[vehicle_id].keys():
-                start_point_x = (xmax + xmin) // 2
-                start_point_y = (ymax + ymin) // 2
-                start_point = (start_point_x, start_point_y)
-                track_db[vehicle_id][obj_id] = (
-                    movement_id, start_point, last_frame)
-            else:
-                movement_id, start_point, last_frame = track_db[vehicle_id][obj_id]
+                if vehicle_id not in track_db.keys():
+                    track_db[vehicle_id] = {}
+                if obj_id not in track_db[vehicle_id].keys():
+                    start_point_x = (xmax + xmin) // 2
+                    start_point_y = (ymax + ymin) // 2
+                    start_point = (start_point_x, start_point_y)
+                    track_db[vehicle_id][obj_id] = (
+                        movement_id, start_point, last_frame)
+                else:
+                    movement_id, start_point, last_frame = track_db[vehicle_id][obj_id]
 
-            last_point_x = (xmax + xmin) // 2
-            last_point_y = (ymax + ymin) // 2
-            last_point = (last_point_x, last_point_y)
-            draw_start_last_points(ori_im, start_point,
-                                last_point, colors[movement_id % 7])
-            if start_frame == frame_id:
-                frame_count[movement_id] += 1
-            if last_frame == frame_id:
-                del track_db[vehicle_id][obj_id]
-            db_index += 1
+                last_point_x = (xmax + xmin) // 2
+                last_point_y = (ymax + ymin) // 2
+                last_point = (last_point_x, last_point_y)
+                draw_start_last_points(ori_im, start_point,
+                                    last_point, colors[movement_id % 7])
+                if start_frame == frame_id:
+                    frame_count[movement_id] += 1
+                if last_frame == frame_id:
+                    del track_db[vehicle_id][obj_id]
+                db_index += 1
 
-        outvid.write(ori_im)
+            outvid.write(ori_im)
 
 COLORS_10 = [(144, 238, 144), (178, 34, 34), (221, 160, 221), (0, 255,  0), (0, 128,  0), (210, 105, 30), (220, 20, 60),
              (192, 192, 192), (255, 228, 196), (50, 205, 50), (139,  0,
