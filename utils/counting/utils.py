@@ -1,11 +1,7 @@
-from matplotlib.pyplot import draw
 import numpy as np
 import cv2
 import json
-import math
-import os
 import random
-import sys
 from tqdm import tqdm
 from .bb_polygon import *
 
@@ -81,12 +77,16 @@ def get_dict(lines):
     return draw_dict
 
 
-def visualize_merged(flatten_db, inpath, outpath, json_anno_path, debug=False):
-    vdo = [os.path.join(inpath, x) for x in os.listdir(inpath)]
-    vdo.sort()
-#     vdo = vdo[:]
-    if debug:
-        vdo = vdo[:3000]
+def visualize_merged(
+    ori_imgs,
+    num_frames,
+    outvid,
+    flatten_db, 
+    polygons_first, 
+    polygons_last, 
+    paths, 
+    polygons):
+
     colors = [(0, 0, 255),  # red    0
               (0, 255, 0),  # green  1
               (255, 0, 0),  # blue   2
@@ -94,27 +94,19 @@ def visualize_merged(flatten_db, inpath, outpath, json_anno_path, debug=False):
               (128, 0, 128),  # purple 4
               (0, 0, 0),  # black  5
               (255, 255, 255)]  # white  6
-    sample = cv2.imread(vdo[0])
-    im_height = int(sample.shape[0])
-    im_width = int(sample.shape[1])
 
-    area = 0, 0, im_width, im_height
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-    output = cv2.VideoWriter(outpath, fourcc, 10, (im_width, im_height))
-    pbar = tqdm(vdo)
+    # {label_id: {track_id: (move_id, start_frame, end_frame)}}
     frame_id = 0
-    tmp, triggers, paths, polygons = load_zone_anno(json_anno_path)
-    db_index = 0
-    track_db = {}  # {vehicle: {obj_id: (move_id, start_frame, end_frame)}}
+    track_db = {}  
     total_count = {}
     frame_count = {}
     for key in list(paths.keys()):
         key = int(key)
         total_count[key] = 0
         frame_count[key] = 0
-    for path in pbar:
+    for frame_id in range(num_frames):
         frame_id += 1
-        ori_im = cv2.imread(path)
+        ori_im = ori_imgs[frame_id-1].copy()
         text = ''
         for key in list(total_count.keys()):
             total_count[key] += frame_count[key]
@@ -124,20 +116,22 @@ def visualize_merged(flatten_db, inpath, outpath, json_anno_path, debug=False):
             draw_text(ori_im, text)
         except:
             pass
+
         for label, polygon in polygons.items():
             # draw_anno(ori_im, polygon, paths)
             draw_anno(ori_im, polygon)
 
-        for label, trigger in triggers.items():
+        for label, trigger in polygons_last.items():
             polygon = np.array(trigger, np.int32)
             polygon = polygon.reshape((-1, 1, 2))
             cv2.polylines(ori_im, [polygon], True, (255, 255, 0), 3)
 
-        for label, trigger in tmp.items():
+        for label, trigger in polygons_first.items():
             polygon = np.array(trigger, np.int32)
             polygon = polygon.reshape((-1, 1, 2))
             cv2.polylines(ori_im, [polygon], True, (255, 255, 255), 3)
 
+        db_index = 0
         while True:
             if not(db_index < len(flatten_db)):
                 break
@@ -147,7 +141,7 @@ def visualize_merged(flatten_db, inpath, outpath, json_anno_path, debug=False):
                 break
             bbox_xyxy = (xmin, ymin, xmax, ymax)
             ori_im = draw_bbox(ori_im, bbox_xyxy,
-                               vehicle_id, movement_id, obj_id)
+                            vehicle_id, movement_id, obj_id)
 
             if vehicle_id not in track_db.keys():
                 track_db[vehicle_id] = {}
@@ -164,19 +158,14 @@ def visualize_merged(flatten_db, inpath, outpath, json_anno_path, debug=False):
             last_point_y = (ymax + ymin) // 2
             last_point = (last_point_x, last_point_y)
             draw_start_last_points(ori_im, start_point,
-                                   last_point, colors[movement_id % 7])
+                                last_point, colors[movement_id % 7])
             if start_frame == frame_id:
                 frame_count[movement_id] += 1
             if last_frame == frame_id:
                 del track_db[vehicle_id][obj_id]
             db_index += 1
 
-        # frame_id += 1
-        output.write(ori_im)
-    output.release()
-
-
-
+        outvid.write(ori_im)
 
 COLORS_10 = [(144, 238, 144), (178, 34, 34), (221, 160, 221), (0, 255,  0), (0, 128,  0), (210, 105, 30), (220, 20, 60),
              (192, 192, 192), (255, 228, 196), (50, 205, 50), (139,  0,

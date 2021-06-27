@@ -14,7 +14,10 @@ from albumentations.pytorch.transforms import ToTensorV2
 from augmentations.transforms import get_resize_augmentation
 from augmentations.transforms import MEAN, STD
 from models.deepsort.deep_sort import DeepSort
-from utils.counting import check_bbox_intersect_polygon, counting_moi, load_zone_anno, run_plan_in
+from utils.counting import (
+    check_bbox_intersect_polygon, 
+    counting_moi, load_zone_anno,
+    run_plan_in, visualize_merged)
 
 parser = argparse.ArgumentParser(description='Perfom Objet Detection')
 parser.add_argument('--weight', type=str, default = None,help='version of EfficentDet')
@@ -145,15 +148,15 @@ class VideoWriter:
 
         video_name = self.video_info['name']
         outpath =os.path.join(self.saved_path, video_name)
-        FPS = self.video_info['fps']
-        WIDTH = self.video_info['width']
-        HEIGHT = self.video_info['height']
-        NUM_FRAMES = self.video_info['num_frames']
+        self.FPS = self.video_info['fps']
+        self.WIDTH = self.video_info['width']
+        self.HEIGHT = self.video_info['height']
+        self.NUM_FRAMES = self.video_info['num_frames']
         self.outvid = cv2.VideoWriter(
             outpath,   
             cv2.VideoWriter_fourcc(*'mp4v'), 
-            FPS, 
-            (WIDTH, HEIGHT))
+            self.FPS, 
+            (self.WIDTH, self.HEIGHT))
 
     def write(self, img, boxes, labels, scores=None, tracks=None):
         write_to_video(
@@ -163,7 +166,24 @@ class VideoWriter:
             imshow=False, 
             outvid = self.outvid, 
             obj_list=self.obj_list)
-        
+
+    def write_full_to_video(
+        self,
+        ori_imgs,
+        flatten_db, 
+        polygons_first, 
+        polygons_last, 
+        paths, polygons):
+
+        visualize_merged(
+            ori_imgs, self.NUM_FRAMES, self.outvid,
+            flatten_db = flatten_db,
+            polygons_first = polygons_first,
+            polygons_last = polygons_last,
+            paths=paths,
+            polygons=polygons
+        )
+            
 
 class VideoDetect:
     def __init__(self, args, config):
@@ -357,28 +377,28 @@ class VideoCounting:
                             self.paths, vehicle_tracks[label_id], label_id)
 
         draw_dict = {}
-        for label_id in self.track_dict_ls:
+        for label_id in range(len(self.track_dict_ls)):
             for track_id in self.track_dict_ls[label_id].keys():
-                x, y, w, h, frame_id = self.track_dict_ls[label_id][track_id]
-              
-                if track_id in vehicles_moi_detections_dict[label_id].keys():
-                    mov_id = vehicles_moi_detections_dict[label_id][track_id][0]
-                    if mov_id == '0':
-                        continue
-                    
-                    start_point = vehicles_moi_detections_dict[label_id][track_id][1][0]
-                    last_point = vehicles_moi_detections_dict[label_id][track_id][1][1]
-                    
-                    start_point = list(map(int, start_point))
-                    last_point = list(map(int, last_point))
-                    
-                    if frame_id not in draw_dict.keys():
-                        draw_dict[frame_id] = []
-                    draw_dict[frame_id].append(
-                        x, y, x+w, y+h, 
-                        start_point[0], start_point[1], 
-                        last_point[0], last_point[1], 
-                        mov_id, track_id, label_id)
+                for x, y, w, h, frame_id in self.track_dict_ls[label_id][track_id]:
+                    print("track_id:", str(track_id))
+                    if track_id in vehicles_moi_detections_dict[label_id].keys():
+                        mov_id = vehicles_moi_detections_dict[label_id][track_id][0]
+                        if mov_id == '0':
+                            continue
+                        print("mov_id:", str(mov_id))
+                        start_point = vehicles_moi_detections_dict[label_id][track_id][1][0]
+                        last_point = vehicles_moi_detections_dict[label_id][track_id][1][1]
+                        
+                        start_point = list(map(int, start_point))
+                        last_point = list(map(int, last_point))
+                        
+                        if frame_id not in draw_dict.keys():
+                            draw_dict[frame_id] = []
+                        draw_dict[frame_id].append(
+                            [x, y, x+w, y+h, 
+                            start_point[0], start_point[1], 
+                            last_point[0], last_point[1], 
+                            mov_id, track_id, label_id])
         
         count_fuse_db = run_plan_in(draw_dict, self.polygons)
         
@@ -398,8 +418,9 @@ class VideoCounting:
                                     track_id, xmin, ymin, xmax, ymax, start_frame, last_frame))
 
         flatten_db = sorted(flatten_db, key=lambda x: x[0])
-       
-        print(flatten_db)
+
+        # list of (frame_id, label_id, mov_id, track_id, xmin, xmax, ymin, ymax, start_frame, last_frame)
+        
 
 
 
