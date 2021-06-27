@@ -470,7 +470,6 @@ class Pipeline:
                 'boxes': []
             }
 
-            all_ori_imgs = []
             for idx, batch in enumerate(tqdm(videoloader)):
                 preds = self.detector.run(batch)
                 ori_imgs = batch['ori_imgs']
@@ -482,7 +481,6 @@ class Pipeline:
                     frame_id = batch['frames'][i]
 
                     ori_img = ori_imgs[i]
-                    all_ori_imgs.append(ori_img)
                     track_result = self.tracker.run(ori_img, boxes, labels, scores)
                     
 

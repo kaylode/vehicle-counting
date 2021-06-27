@@ -79,7 +79,6 @@ def get_dict(lines):
 
 def visualize_merged(
     videoloader,
-    num_frames,
     outvid,
     flatten_db, 
     polygons_first, 
@@ -104,11 +103,10 @@ def visualize_merged(
         total_count[key] = 0
         frame_count[key] = 0
     
-    frame_id = 0
     for batch in videoloader:
         ori_imgs = batch['ori_imgs']
-        for ori_img in ori_imgs:
-            frame_id += 1
+        frame_ids = batch['ori_imgs']
+        for (ori_img, frame_id) in zip(ori_imgs, frame_ids):
             ori_im = ori_img.copy()
             text = ''
             for key in list(total_count.keys()):
