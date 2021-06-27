@@ -176,7 +176,7 @@ class VideoWriter:
         paths, polygons):
 
         visualize_merged(
-            videoloader, self.NUM_FRAMES, self.outvid,
+            videoloader, self.outvid,
             flatten_db = flatten_db,
             polygons_first = polygons_first,
             polygons_last = polygons_last,
