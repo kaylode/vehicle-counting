@@ -45,6 +45,7 @@ this repo
 ```
 # Dataset:
 - AIC-HCMC-2020: [link](https://drive.google.com/file/d/1iu4ifOTqnH_t80mL5IGasM6yKxhziPdL/view?usp=sharing)
+- Testset: [link](https://drive.google.com/drive/folders/1Qn5IZBgbaUwqAdhkOdKp969K_4aETl8Y?usp=sharing)
 
 ![Alt Text](demo/dataset.PNG)
 
