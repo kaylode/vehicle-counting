@@ -105,7 +105,7 @@ def visualize_merged(
     
     for batch in videoloader:
         ori_imgs = batch['ori_imgs']
-        frame_ids = batch['ori_imgs']
+        frame_ids = batch['frames']
         for (ori_img, frame_id) in zip(ori_imgs, frame_ids):
             ori_im = ori_img.copy()
             text = ''

@@ -341,6 +341,10 @@ class VideoCounting:
         self.polygons_first, self.polygons_last, self.paths, self.polygons = load_zone_anno(zone_path)
      
     def run(self, frames, tracks, labels, boxes):
+        """
+        obj id must starts from 0
+        boxes in xyxy format
+        """
         for (frame_id, track_id, label_id, box) in zip(frames, tracks, labels, boxes):
             for _, polygon in self.polygons.items():
                 if check_bbox_intersect_polygon(polygon, box):
@@ -380,28 +384,26 @@ class VideoCounting:
                             self.paths, vehicle_tracks[label_id], label_id)
 
         draw_dict = {}
-        for label_id in range(len(self.track_dict_ls)):
-            for track_id in self.track_dict_ls[label_id].keys():
-                for x, y, w, h, frame_id in self.track_dict_ls[label_id][track_id]:
-                   
-                    if track_id in vehicles_moi_detections_dict[label_id].keys():
-                        mov_id = vehicles_moi_detections_dict[label_id][track_id][0]
-                        if mov_id == '0':
-                            continue
-                       
-                        start_point = vehicles_moi_detections_dict[label_id][track_id][1][0]
-                        last_point = vehicles_moi_detections_dict[label_id][track_id][1][1]
-                        
-                        start_point = list(map(int, start_point))
-                        last_point = list(map(int, last_point))
-                        
-                        if frame_id not in draw_dict.keys():
-                            draw_dict[frame_id] = []
-                        draw_dict[frame_id].append(
-                            [x, y, x+w, y+h, 
-                            start_point[0], start_point[1], 
-                            last_point[0], last_point[1], 
-                            mov_id, track_id, label_id])
+
+
+        for (frame_id, track_id, label_id, box) in zip(frames, tracks, labels, boxes):
+            if track_id in vehicles_moi_detections_dict[label_id].keys():
+                mov_id = vehicles_moi_detections_dict[label_id][track_id][0]
+                if mov_id == '0':
+                    continue
+
+                start_point = vehicles_moi_detections_dict[label_id][track_id][1][0]
+                last_point = vehicles_moi_detections_dict[label_id][track_id][1][1]
+                start_point = list(map(int, start_point))
+                last_point = list(map(int, last_point))
+
+                if frame_id not in draw_dict.keys():
+                    draw_dict[frame_id] = []
+                draw_dict[frame_id].append(
+                    [box[0], box[1], box[2], box[3], 
+                    start_point[0], start_point[1], 
+                    last_point[0], last_point[1], 
+                    mov_id, track_id, label_id])
         
         count_fuse_db = run_plan_in(draw_dict, self.polygons)
         
