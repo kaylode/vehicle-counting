@@ -1,18 +1,9 @@
-from augmentations.tta import NUM_CLASSES
-from random import shuffle
 from utils.getter import *
 import argparse
 import os
 import cv2
-import json
-import torch
-from torch.utils.data import DataLoader
-from utils.utils import write_to_video
-from utils.postprocess import postprocessing
 from tqdm import tqdm
-import albumentations as A
-from albumentations.pytorch.transforms import ToTensorV2
-from augmentations.transforms import get_resize_augmentation
+
 from augmentations.transforms import MEAN, STD
 from models.deepsort.deep_sort import DeepSort
 from utils.counting import (
@@ -360,7 +351,7 @@ class VideoCounting:
         """
 
         for (frame_id, track_id, label_id, box) in zip(frames, tracks, labels, boxes):
-            for _, polygon in self.polygons.items():
+            for polygon in self.polygons:
                 if check_bbox_intersect_polygon(polygon, box):
                     # check only boxes which intersect with polygons
 
