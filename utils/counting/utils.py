@@ -35,14 +35,15 @@ def save_tracking_to_csv(track_dict, filename):
     num_classes = len(track_dict)
     obj_dict = {
         'track_id': [],
+        'frame_id': [],
         'box': [],
         'color': [],
         'label': [],
         'direction': [],
         'fpoint': [],
         'lpoint': [],
-        'first_frame': [],
-        'last_frame': []
+        'fframe': [],
+        'lframe': []
     }
 
     for label_id in range(num_classes):
@@ -55,16 +56,16 @@ def save_tracking_to_csv(track_dict, filename):
             frame_first = frames[0]
             frame_last = frames[-1]
 
-            box_first = box[0]
-            box_last = box[-1]
+            box_first = boxes[0]
+            box_last = boxes[-1]
 
             center_point_first = ((box_first[2]+box_first[0]) / 2, (box_first[3] + box_first[1])/2)
             center_point_last = ((box_last[2]+box_last[0]) / 2, (box_last[3] + box_last[1])/2)
 
-            for i in range(len(track_dict[label_id][track_id])):
-                box = boxes[i]                
+            for i in range(len(track_dict[label_id][track_id]['boxes'])):              
                 obj_dict['track_id'].append(track_id)
-                obj_dict['box'].append(box)
+                obj_dict['frame_id'].append(frames[i])
+                obj_dict['box'].append(boxes[i].tolist())
                 obj_dict['color'].append(color)
                 obj_dict['label'].append(label_id)
                 obj_dict['direction'].append(direction)

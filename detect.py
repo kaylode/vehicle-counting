@@ -351,19 +351,19 @@ class VideoCounting:
         """
 
         for (frame_id, track_id, label_id, box) in zip(frames, tracks, labels, boxes):
-            for polygon in self.polygons:
-                if check_bbox_intersect_polygon(polygon, box):
-                    # check only boxes which intersect with polygons
+            
+            if check_bbox_intersect_polygon(self.polygons, box):
+                # check only boxes which intersect with polygons
 
-                    if track_id not in self.track_dict[label_id].keys():
-                        self.track_dict[label_id][track_id] = {
-                            'boxes': [],
-                            'frames': [],
-                            'color': [np.random.randint(0,255) for i in range(3)],
-                        }
-                    
-                    self.track_dict[label_id][track_id]['boxes'].append(box)
-                    self.track_dict[label_id][track_id]['frames'].append(frame_id)
+                if track_id not in self.track_dict[label_id].keys():
+                    self.track_dict[label_id][track_id] = {
+                        'boxes': [],
+                        'frames': [],
+                        'color': [np.random.randint(0,255) for i in range(3)],
+                    }
+                
+                self.track_dict[label_id][track_id]['boxes'].append(box)
+                self.track_dict[label_id][track_id]['frames'].append(frame_id)
                     
         
         for label_id in range(self.num_classes):
@@ -378,7 +378,7 @@ class VideoCounting:
 
                 direction = find_best_match_direction(
                     obj_vector = (center_point_first, center_point_last),
-                    paths = self.paths
+                    paths = self.directions
                 )   
 
                 self.track_dict[label_id][track_id]['direction'] = direction
@@ -466,20 +466,21 @@ class Pipeline:
 
             
 
-            flatten_db = videocounter.run(
+            result_dict = videocounter.run(
                     frames = obj_dict['frames'],
                     tracks = obj_dict['tracks'], 
                     labels = obj_dict['labels'],
-                    boxes = obj_dict['boxes'])
+                    boxes = obj_dict['boxes'],
+                    output_path=os.path.join(self.saved_path, cam_name+'.csv'))
 
             videoloader.reinitialize_stream()
-            videowriter.write_full_to_video(
-                    videoloader,
-                    flatten_db=flatten_db, 
-                    polygons_first = videocounter.polygons_first, 
-                    polygons_last =videocounter.polygons_last, 
-                    paths = videocounter.paths, 
-                    polygons = videocounter.polygons)
+            # videowriter.write_full_to_video(
+            #         videoloader,
+            #         flatten_db=flatten_db, 
+            #         polygons_first = videocounter.polygons_first, 
+            #         polygons_last =videocounter.polygons_last, 
+            #         paths = videocounter.paths, 
+            #         polygons = videocounter.polygons)
             
 
 
