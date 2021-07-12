@@ -1,3 +1,4 @@
+from augmentations.tta import NUM_CLASSES
 from random import shuffle
 from utils.getter import *
 import argparse
@@ -5,8 +6,8 @@ import os
 import cv2
 import json
 import torch
-from torch.utils.data import Dataset, DataLoader
-from utils.utils import draw_boxes_v2, write_to_video
+from torch.utils.data import DataLoader
+from utils.utils import write_to_video
 from utils.postprocess import postprocessing
 from tqdm import tqdm
 import albumentations as A
@@ -16,8 +17,8 @@ from augmentations.transforms import MEAN, STD
 from models.deepsort.deep_sort import DeepSort
 from utils.counting import (
     check_bbox_intersect_polygon, 
-    counting_moi, load_zone_anno,
-    run_plan_in, visualize_merged)
+    save_tracking_to_csv, load_zone_anno,
+    find_best_match_direction, visualize_merged)
 
 parser = argparse.ArgumentParser(description='Perfom Objet Detection')
 parser.add_argument('--weight', type=str, default = None,help='version of EfficentDet')
@@ -320,8 +321,6 @@ class VideoTracker:
                 
                 for obj in outputs:
                     box = obj[:4]
-                    box[2] = box[2] - box[0]
-                    box[3] = box[3] - box[1]
                     result_dict['tracks'].append(obj[4])
                     result_dict['boxes'].append(box)
                     result_dict['labels'].append(i+1)
@@ -335,97 +334,69 @@ class VideoCounting:
     def __init__(self, class_names, zone_path, minimum_length=4) -> None:
         self.class_names = class_names
         self.num_classes = len(class_names)
-        self.track_dict_ls = [{} for i in range(self.num_classes)]
+        self.track_dict = [{} for i in range(self.num_classes)]
         self.minimum_length = minimum_length
         self.zone_path = zone_path
-        self.polygons_first, self.polygons_last, self.paths, self.polygons = load_zone_anno(zone_path)
-     
-    def run(self, frames, tracks, labels, boxes):
+        self.polygons, self.directions = load_zone_anno(zone_path)
+    
+    def run(self, frames, tracks, labels, boxes, output_path=None):
         """
         obj id must starts from 0
         boxes in xyxy format
         """
+
+        """
+        self.track_dict stores:
+            [
+                {
+                    track_id: {
+                        points: [center_points],
+                        frames: [frame_id],
+                        color: color,
+
+                    },...
+                }
+            ]
+        """
+
         for (frame_id, track_id, label_id, box) in zip(frames, tracks, labels, boxes):
             for _, polygon in self.polygons.items():
                 if check_bbox_intersect_polygon(polygon, box):
-                    if track_id not in self.track_dict_ls[label_id].keys():
-                        # find obj id which intersect with polygons
-                        self.track_dict_ls[label_id][track_id] = []
-                    self.track_dict_ls[label_id][track_id].append((box[0], box[1], box[2], box[3], frame_id))
+                    # check only boxes which intersect with polygons
 
-        # Remove tracks that have short length
-        # for label_id in range(self.num_classes):
-        #     for track_id in self.track_dict_ls[label_id].keys():
-        #         if len(self.track_dict_ls[label_id][track_id]) < self.minimum_length:
-        #             del self.track_dict_ls[label_id][track_id]
-        
-        vehicle_tracks = [[] for i in range(self.num_classes)]
-        for label_id in range(self.num_classes):
-            track_dict = self.track_dict_ls[label_id]
-            for tracker_id, tracker_list in track_dict.items():
-                if len(tracker_list) > 1:
-                    first = tracker_list[0]
-                    last = tracker_list[-1]
-                    # Get center point of first box and last box
-                    first_point = ((first[2] + first[0])/2,
-                                (first[3] + first[1])/2)
-                    last_point = ((last[2] + last[0])/2, (last[3] + last[1])/2)
+                    if track_id not in self.track_dict[label_id].keys():
+                        self.track_dict[label_id][track_id] = {
+                            'boxes': [],
+                            'frames': [],
+                            'color': [np.random.randint(0,255) for i in range(3)],
+                        }
                     
-                    vehicle_tracks[label_id].append(
-                        (first_point, last_point, last[4], tracker_id, first[:4], last[:4]))
+                    self.track_dict[label_id][track_id]['boxes'].append(box)
+                    self.track_dict[label_id][track_id]['frames'].append(frame_id)
                     
-
-        vehicles_moi_detections_ls = [[] for i in range(self.num_classes)]
-        vehicles_moi_detections_dict = [{} for i in range(self.num_classes)]
+        
         for label_id in range(self.num_classes):
-            #(frame_id, movement_id, vehicle_class_id)
-            vehicles_moi_detections_ls[label_id], vehicles_moi_detections_dict[label_id] = \
-                counting_moi((self.polygons_first, self.polygons_last),
-                            self.paths, vehicle_tracks[label_id], label_id)
+            for track_id in self.track_dict[label_id].keys():
+                boxes = self.track_dict[label_id][track_id]['boxes']
 
-        draw_dict = {}
+                first_box = boxes[0]
+                last_box = boxes[-1]
 
+                center_point_first = ((first_box[2]+first_box[0]) / 2, (first_box[3] + first_box[1])/2)
+                center_point_last = ((last_box[2]+last_box[0]) / 2, (last_box[3] + last_box[1])/2)
 
-        for (frame_id, track_id, label_id, box) in zip(frames, tracks, labels, boxes):
-            if track_id in vehicles_moi_detections_dict[label_id].keys():
-                mov_id = vehicles_moi_detections_dict[label_id][track_id][0]
-                if mov_id == '0':
-                    continue
+                direction = find_best_match_direction(
+                    obj_vector = (center_point_first, center_point_last),
+                    paths = self.paths
+                )   
 
-                start_point = vehicles_moi_detections_dict[label_id][track_id][1][0]
-                last_point = vehicles_moi_detections_dict[label_id][track_id][1][1]
-                start_point = list(map(int, start_point))
-                last_point = list(map(int, last_point))
-
-                if frame_id not in draw_dict.keys():
-                    draw_dict[frame_id] = []
-                draw_dict[frame_id].append(
-                    [box[0], box[1], box[2], box[3], 
-                    start_point[0], start_point[1], 
-                    last_point[0], last_point[1], 
-                    mov_id, track_id, label_id])
+                self.track_dict[label_id][track_id]['direction'] = direction
         
-        count_fuse_db = run_plan_in(draw_dict, self.polygons)
-        
-        flatten_db = []
-        for key, value in count_fuse_db.items():
-            vehicle_id, movement_id = key.split('_')
-            for track_id, frame_list in value.items():
-                for frame_info in frame_list:
-                    frame_id = frame_info['frame_id']
-                    xmin = frame_info['xmin']
-                    xmax = frame_info['xmax']
-                    ymin = frame_info['ymin']
-                    ymax = frame_info['ymax']
-                    start_frame = frame_list[0]['frame_id']
-                    last_frame = frame_list[-1]['frame_id']
-                    flatten_db.append((frame_id, vehicle_id, movement_id,
-                                    track_id, xmin, ymin, xmax, ymax, start_frame, last_frame))
+        if output_path is not None:
+            save_tracking_to_csv(self.track_dict, output_path)
 
-        flatten_db = sorted(flatten_db, key=lambda x: x[0])
-        return flatten_db
-        # list of (frame_id, label_id, mov_id, track_id, xmin, xmax, ymin, ymax, start_frame, last_frame)
-        
+        return self.track_dict
+       
 
 
 
@@ -489,12 +460,13 @@ class Pipeline:
                     track_result = self.tracker.run(ori_img, boxes, labels, scores)
                     
 
+                    # box_xywh = change_box_order(track_result['boxes'],'xyxy2xywh');
                     # videowriter.write(
                     #     ori_img,
                     #     boxes = track_result['boxes'],
-                    #     labels = track_result['labels'],
+                    #     labels = box_xywh,
                     #     tracks = track_result['tracks'])
-
+                    
                     for j in range(len(track_result['boxes'])):
                         obj_dict['frames'].append(frame_id)
                         obj_dict['tracks'].append(track_result['tracks'][j])
