@@ -1,3 +1,4 @@
+import random
 from utils.getter import *
 import argparse
 import os
@@ -165,18 +166,15 @@ class VideoWriter:
     def write_full_to_video(
         self,
         videoloader,
-        flatten_db, 
-        polygons_first, 
-        polygons_last, 
+        csv_path,
         paths, polygons):
 
         visualize_merged(
-            videoloader, self.outvid,
-            flatten_db = flatten_db,
-            polygons_first = polygons_first,
-            polygons_last = polygons_last,
-            paths=paths,
-            polygons=polygons
+            videoloader, 
+            csv_path, 
+            directions = paths, 
+            zones = polygons, 
+            outvid=self.outvid
         )
             
 
@@ -244,7 +242,7 @@ class VideoDetect:
 
                 boxes = outputs['bboxes'] 
 
-                # Label starts from 0
+                # Here, labels start from 1, but will subtract 1 later
                 labels = outputs['classes'] 
                 scores = outputs['scores']
 
@@ -262,7 +260,7 @@ class VideoTracker:
         tracking_config = cam_config["tracking_config"]
         self.num_classes = num_classes 
         self.video_info = video_info
-        self.NUM_CLASSES = video_info['num_frames']
+        self.num_frames = video_info['num_frames']
 
         ## Build up a tracker for each class
         self.deepsort = [self.build_tracker(deepsort_chepoint, tracking_config) for i in range(num_classes)]
@@ -331,6 +329,7 @@ class VideoCounting:
         self.polygons, self.directions = load_zone_anno(zone_path)
     
     def run(self, frames, tracks, labels, boxes, output_path=None):
+        from .utils import color_list
         """
         obj id must starts from 0
         boxes in xyxy format
@@ -359,7 +358,7 @@ class VideoCounting:
                     self.track_dict[label_id][track_id] = {
                         'boxes': [],
                         'frames': [],
-                        'color': [np.random.randint(0,255) for i in range(3)],
+                        'color': random.sample(color_list,1),
                     }
                 
                 self.track_dict[label_id][track_id]['boxes'].append(box)
@@ -399,6 +398,7 @@ class Pipeline:
         self.saved_path = args.output_path
         self.cam_config = cam_config
         self.zone_path = cam_config.zone_path
+        self.config = config
 
         if os.path.isdir(self.video_path):
             video_names = sorted(os.listdir(self.video_path))
@@ -414,7 +414,7 @@ class Pipeline:
     def run(self):
         for video_path in self.all_video_paths:
             cam_name = self.get_cam_name(video_path)
-            videoloader = VideoLoader(config, video_path)
+            videoloader = VideoLoader(self.config, video_path)
             self.tracker = VideoTracker(
                 len(self.class_names),
                 self.cam_config.cam[cam_name],
@@ -474,13 +474,11 @@ class Pipeline:
                     output_path=os.path.join(self.saved_path, cam_name+'.csv'))
 
             videoloader.reinitialize_stream()
-            # videowriter.write_full_to_video(
-            #         videoloader,
-            #         flatten_db=flatten_db, 
-            #         polygons_first = videocounter.polygons_first, 
-            #         polygons_last =videocounter.polygons_last, 
-            #         paths = videocounter.paths, 
-            #         polygons = videocounter.polygons)
+            videowriter.write_full_to_video(
+                videoloader,
+                csv_path=os.path.join(self.saved_path, cam_name+'.csv'),
+                paths=videocounter.directions,
+                polygons=videocounter.polygons)
             
 
 

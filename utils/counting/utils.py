@@ -11,11 +11,66 @@ def random_color():
     return tuple(rgbl)
 
 def draw_arrow(image, start_point, end_point, color):
-    cv2.line(image, start_point, end_point, color, 3)
-    cv2.circle(image, end_point, 15, color, -1)
+    image = cv2.line(image, start_point, end_point, color, 3)
+    image = cv2.circle(image, end_point, 15, color, -1)
+    return image
 
 def draw_start_last_points(ori_im, start_point, last_point, color=(0, 255, 0)):
-    draw_arrow(ori_im, start_point, last_point, color)
+    return draw_arrow(ori_im, start_point, last_point, color)
+
+def draw_one_box(img, box, key=None, value=None, color=None, line_thickness=None):
+    tl = line_thickness or int(round(0.001 * max(img.shape[0:2])))  # line thickness
+
+    coord = [box[0], box[1], box[0]+box[2], box[1]+box[3]]
+    c1, c2 = (int(coord[0]), int(coord[1])), (int(coord[2]), int(coord[3]))
+    img = cv2.rectangle(img, c1, c2, color, thickness=tl*2)
+    if key is not None and value is not None:
+        header = f'{key} || {value}'
+        tf = max(tl - 2, 1)  # font thickness
+        s_size = cv2.getTextSize(f'| {value}', 0, fontScale=float(tl) / 3, thickness=tf)[0]
+        t_size = cv2.getTextSize(f'{key} |', 0, fontScale=float(tl) / 3, thickness=tf)[0]
+        c2 = c1[0] + t_size[0] + s_size[0] + 15, c1[1] - t_size[1] - 3
+        img = cv2.rectangle(img, c1, c2, color, -1)  # filled
+        img = cv2.putText(img, header, (c1[0], c1[1] - 2), 0, float(tl) / 3, [0, 0, 0],
+                    thickness=tf, lineType=cv2.FONT_HERSHEY_SIMPLEX)    
+    return img
+
+def draw_text(img, text):
+    font_scale = 1.5
+    font = cv2.FONT_HERSHEY_PLAIN
+
+    # set the rectangle background to white
+    rectangle_bgr = (255, 255, 255)
+    # get the width and height of the text box
+    (text_width, text_height) = cv2.getTextSize(
+        text, font, fontScale=font_scale, thickness=1)[0]
+    # set the text start position
+    text_offset_x = 10
+    text_offset_y = img.shape[0] - 25
+    # make the coords of the box with a small padding of two pixels
+    box_coords = ((text_offset_x, text_offset_y), (text_offset_x +
+                                                   text_width + 2, text_offset_y - text_height - 2))
+    img = cv2.rectangle(img, box_coords[0], box_coords[1], rectangle_bgr, cv2.FILLED)
+    img = cv2.putText(img, text, (text_offset_x, text_offset_y), font,
+                fontScale=font_scale, color=(0, 0, 0), thickness=1)
+    return img
+
+def draw_anno(image, polygon=None, paths=None):
+    colors = [(0, 0, 255),  # red    0
+              (0, 255, 0),  # green  1
+              (255, 0, 0),  # blue   2
+              (0, 255, 255),  # cyan   3
+              (128, 0, 128),  # purple 4
+              (0, 0, 0),  # black  5
+              (255, 255, 255)]  # white  6
+    if polygon:
+        polygon = np.array(polygon, np.int32)
+        polygon = polygon.reshape((-1, 1, 2))
+        image = cv2.polylines(image, [polygon], True, colors[0], 5)
+    if paths:
+        for path, points in paths.items():
+            image = draw_arrow(image, points[0], points[1], colors[5])
+    return image
 
 def load_zone_anno(zone_path):
         with open(zone_path, 'r') as f:
@@ -127,21 +182,46 @@ def convert_frame_dict(track_dict):
 
     return result_dict
 
-def visualize_merged(frame_dict, polygons, paths, num_classes):
-    num_frames = frame_dict.keys()
+def visualize_one_frame(img, df):
+    # track_id	frame_id	box	color	label	direction	fpoint	lpoint	fframe	lframe
+    anns = [
+        i for i in zip(
+            df.track_id, 
+            df.box, 
+            df.color, 
+            df.label, 
+            df.direction, 
+            df.fpoint, 
+            df.fframe, 
+            df.lframe)
+    ]
 
-    direction_label_count = {
-        k: {
-            k2:0 for k2 in range(num_classes)
-        } for k in paths
-    }
+    for (track_id, box, color, label, direction, fpoint, fframe, lframe) in anns:
+        box = eval(box)
+        fpoint = np.array(eval(fpoint)).astype(int)
+        color = eval(color)
 
-    for frame_id in num_frames:
-        frame_objects = frame_dict[frame_id]
-        num_objs_in_frame = len(frame_objects)
-        for index in range(num_objs_in_frame):
-            box = frame_objects['boxes'][index]
-            label = frame_objects['labels'][index]
-            color = frame_objects['colors'][index]
-            direction = frame_objects['directions'][index]
-            direction_label_count[direction][label]+=1
+        cpoint = np.array([(box[2]+box[0]) / 2, (box[3] + box[1])/2]).astype(int)
+
+        draw_start_last_points(img, fpoint, cpoint, color)
+        draw_one_box(
+                img, 
+                box, 
+                key=f'id: {track_id}',
+                value=f'cls: {label}',
+                color=color)
+
+def visualize_merged(videoloader, csv_path, directions, zones, outvid):
+    df = pd.read_csv(csv_path)
+    for batch in tqdm(videoloader):
+        imgs = batch['ori_imgs']
+        frame_ids = batch['frames']
+
+        for idx in range(len(imgs)):
+            frame_id = frame_ids[idx]
+            img = imgs[idx].copy()
+
+            tmp_df = df[df.frame_id.astype(int) == frame_id]
+            if len(tmp_df) > 0:
+                img = visualize_one_frame(img, tmp_df)
+            outvid.write(img)
