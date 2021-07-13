@@ -21,7 +21,7 @@ def draw_start_last_points(ori_im, start_point, last_point, color=(0, 255, 0)):
 def draw_one_box(img, box, key=None, value=None, color=None, line_thickness=None):
     tl = line_thickness or int(round(0.001 * max(img.shape[0:2])))  # line thickness
 
-    coord = [box[0], box[1], box[0]+box[2], box[1]+box[3]]
+    coord = [box[0], box[1], box[2], box[3]]
     c1, c2 = (int(coord[0]), int(coord[1])), (int(coord[2]), int(coord[3]))
     img = cv2.rectangle(img, c1, c2, color, thickness=tl*2)
     if key is not None and value is not None:
@@ -55,7 +55,7 @@ def draw_text(img, text):
                 fontScale=font_scale, color=(0, 0, 0), thickness=1)
     return img
 
-def draw_anno(image, polygon=None, paths=None):
+def draw_anno(image, polygons=None, paths=None):
     colors = [(0, 0, 255),  # red    0
               (0, 255, 0),  # green  1
               (255, 0, 0),  # blue   2
@@ -63,10 +63,11 @@ def draw_anno(image, polygon=None, paths=None):
               (128, 0, 128),  # purple 4
               (0, 0, 0),  # black  5
               (255, 255, 255)]  # white  6
-    if polygon:
-        polygon = np.array(polygon, np.int32)
-        polygon = polygon.reshape((-1, 1, 2))
-        image = cv2.polylines(image, [polygon], True, colors[0], 5)
+    if polygons:
+        for polygon in polygons:
+            polygon = np.array(polygon, np.int32)
+            polygon = polygon.reshape((-1, 1, 2))
+            image = cv2.polylines(image, [polygon], True, colors[0], 5)
     if paths:
         for path, points in paths.items():
             image = draw_arrow(image, points[0], points[1], colors[5])
@@ -182,7 +183,7 @@ def convert_frame_dict(track_dict):
 
     return result_dict
 
-def visualize_one_frame(img, df):
+def visualize_one_frame(img, df, polygons, directions, text):
     # track_id	frame_id	box	color	label	direction	fpoint	lpoint	fframe	lframe
     anns = [
         i for i in zip(
@@ -200,19 +201,48 @@ def visualize_one_frame(img, df):
         box = eval(box)
         fpoint = np.array(eval(fpoint)).astype(int)
         color = eval(color)
-
         cpoint = np.array([(box[2]+box[0]) / 2, (box[3] + box[1])/2]).astype(int)
-
-        draw_start_last_points(img, fpoint, cpoint, color)
-        draw_one_box(
+        img = draw_start_last_points(img, fpoint, cpoint, color)
+        img = draw_anno(img, polygons, directions)
+        img = draw_text(img, text)
+        img = draw_one_box(
                 img, 
                 box, 
                 key=f'id: {track_id}',
                 value=f'cls: {label}',
                 color=color)
+    return img
 
-def visualize_merged(videoloader, csv_path, directions, zones, outvid):
+def count_frame_directions(df, count_dict):
+    anns = [
+        i for i in zip(
+            df.frame_id,
+            df.label, 
+            df.direction,  
+            df.lframe)
+    ]
+
+    for (frame_id, label, direction, lframe) in anns:
+        if lframe == frame_id:
+            count_dict[direction][label] += 1
+
+    count_text = ""
+    for dir in count_dict.keys():
+        tmp_text = "direction: {direction} | "
+        for cls_id in count_dict[dir].keys():
+            tmp_text += f"{cls_id}: {count_dict[dir][cls_id]} "
+        count_text = count_text + tmp_text + "\n"
+
+    return count_dict, count_text
+
+def visualize_merged(videoloader, csv_path, directions, zones, num_classes, outvid):
     df = pd.read_csv(csv_path)
+    count_dict = {
+        dir: {
+            label: 0 for label in range(num_classes)
+        } for dir in directions
+    }
+
     for batch in tqdm(videoloader):
         imgs = batch['ori_imgs']
         frame_ids = batch['frames']
@@ -222,6 +252,8 @@ def visualize_merged(videoloader, csv_path, directions, zones, outvid):
             img = imgs[idx].copy()
 
             tmp_df = df[df.frame_id.astype(int) == frame_id]
+            count_dict, text = count_frame_directions(tmp_df, count_dict)
+
             if len(tmp_df) > 0:
-                img = visualize_one_frame(img, tmp_df)
+                img = visualize_one_frame(img, tmp_df, zones, directions, text)
             outvid.write(img)

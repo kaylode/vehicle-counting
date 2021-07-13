@@ -329,7 +329,7 @@ class VideoCounting:
         self.polygons, self.directions = load_zone_anno(zone_path)
     
     def run(self, frames, tracks, labels, boxes, output_path=None):
-        from .utils import color_list
+        from utils.utils import color_list
         """
         obj id must starts from 0
         boxes in xyxy format
@@ -358,7 +358,7 @@ class VideoCounting:
                     self.track_dict[label_id][track_id] = {
                         'boxes': [],
                         'frames': [],
-                        'color': random.sample(color_list,1),
+                        'color': random.sample(color_list,1)[0],
                     }
                 
                 self.track_dict[label_id][track_id]['boxes'].append(box)
