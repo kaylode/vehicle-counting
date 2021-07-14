@@ -201,7 +201,7 @@ class VideoDetect:
 
         if args.weight is not None:
             self.class_names, num_classes = get_class_names(args.weight)
-        self.class_names.insert(0, 'Background')
+        # self.class_names.insert(0, 'Background')
 
         net = get_model(
             args, config,

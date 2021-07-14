@@ -57,7 +57,7 @@ def draw_text(
         )
 
         text_offset_x = 10
-        text_offset_y = img.shape[0] - h*(len(lines)+1)
+        text_offset_y = img.shape[0] - h*(len(lines)+3)
         uv_top_left = (text_offset_x, text_offset_y)
     
     uv_top_left = np.array(uv_top_left, dtype=float)
@@ -138,14 +138,14 @@ def find_best_match_direction(obj_vector,paths):
     """
     paths: dict {key: vector,...}
     """
-    directions = paths.keys()
+    directions = list(paths.keys())
     best_score = 0
     best_match = directions[0]
     for direction_id in directions:
         vector = paths[direction_id]
         score = cosin_similarity(obj_vector, vector)
         if score > best_score:
-            best_score = best_score
+            best_score = score
             best_match = direction_id
     return best_match
 
