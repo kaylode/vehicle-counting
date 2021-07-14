@@ -1,18 +1,12 @@
 import cv2
 import json
-import random
 from tqdm import tqdm
 import pandas as pd
 from .bb_polygon import *
 
-def random_color():
-    rgbl = [255, 0, 0]
-    random.shuffle(rgbl)
-    return tuple(rgbl)
-
 def draw_arrow(image, start_point, end_point, color):
     image = cv2.line(image, start_point, end_point, color, 3)
-    image = cv2.circle(image, end_point, 15, color, -1)
+    image = cv2.circle(image, end_point, 8, color, -1)
     return image
 
 def draw_start_last_points(ori_im, start_point, last_point, color=(0, 255, 0)):
@@ -40,7 +34,7 @@ def draw_text(
     text,
     uv_top_left=None,
     color=(255, 255, 255),
-    fontScale=1.5,
+    fontScale=0.75,
     thickness=1,
     fontFace=cv2.FONT_HERSHEY_SIMPLEX,
     outline_color=(0, 0, 0),
@@ -51,16 +45,25 @@ def draw_text(
     """
     assert isinstance(text, str)
 
+    lines = text.splitlines()
     if uv_top_left is None:
         # set the text start position, at the bottom left of video
+
+        (w, h), _ = cv2.getTextSize(
+            text=lines[0],
+            fontFace=fontFace,
+            fontScale=fontScale,
+            thickness=thickness,
+        )
+
         text_offset_x = 10
-        text_offset_y = img.shape[0] - 50
+        text_offset_y = img.shape[0] - h*len(lines)
         uv_top_left = (text_offset_x, text_offset_y)
     
     uv_top_left = np.array(uv_top_left, dtype=float)
     assert uv_top_left.shape == (2,)
 
-    for line in text.splitlines():
+    for line in lines:
         (w, h), _ = cv2.getTextSize(
             text=line,
             fontFace=fontFace,
@@ -290,6 +293,7 @@ def visualize_merged(videoloader, csv_path, directions, zones, num_classes, outv
         } for dir in directions
     }
 
+    prev_text = "" # Delay direction text by one frame
     for batch in tqdm(videoloader):
         imgs = batch['ori_imgs']
         frame_ids = batch['frames']
@@ -306,6 +310,8 @@ def visualize_merged(videoloader, csv_path, directions, zones, num_classes, outv
             if len(tmp_df) > 0:
                 img = visualize_one_frame(img, tmp_df)
                 
-            img = draw_text(img, text)
+            img = draw_text(img, prev_text)
+            prev_text=text
+        
             img = draw_frame_count(img, frame_id)
             outvid.write(img)
