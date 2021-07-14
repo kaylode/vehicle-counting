@@ -35,24 +35,64 @@ def draw_one_box(img, box, key=None, value=None, color=None, line_thickness=None
                     thickness=tf, lineType=cv2.FONT_HERSHEY_SIMPLEX)    
     return img
 
-def draw_text(img, text):
-    font_scale = 1.5
-    font = cv2.FONT_HERSHEY_PLAIN
+def draw_text(
+    img,
+    text,
+    uv_top_left=None,
+    color=(255, 255, 255),
+    fontScale=1.5,
+    thickness=1,
+    fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+    outline_color=(0, 0, 0),
+    line_spacing=1.5,
+):
+    """
+    Draws multiline with an outline.
+    """
+    assert isinstance(text, str)
 
-    # set the rectangle background to white
-    rectangle_bgr = (255, 255, 255)
-    # get the width and height of the text box
-    (text_width, text_height) = cv2.getTextSize(
-        text, font, fontScale=font_scale, thickness=1)[0]
-    # set the text start position
-    text_offset_x = 10
-    text_offset_y = img.shape[0] - 25
-    # make the coords of the box with a small padding of two pixels
-    box_coords = ((text_offset_x, text_offset_y), (text_offset_x +
-                                                   text_width + 2, text_offset_y - text_height - 2))
-    img = cv2.rectangle(img, box_coords[0], box_coords[1], rectangle_bgr, cv2.FILLED)
-    img = cv2.putText(img, text, (text_offset_x, text_offset_y), font,
-                fontScale=font_scale, color=(0, 0, 0), thickness=1)
+    if uv_top_left is None:
+        # set the text start position, at the bottom left of video
+        text_offset_x = 10
+        text_offset_y = img.shape[0] - 50
+        uv_top_left = (text_offset_x, text_offset_y)
+    
+    uv_top_left = np.array(uv_top_left, dtype=float)
+    assert uv_top_left.shape == (2,)
+
+    for line in text.splitlines():
+        (w, h), _ = cv2.getTextSize(
+            text=line,
+            fontFace=fontFace,
+            fontScale=fontScale,
+            thickness=thickness,
+        )
+        uv_bottom_left_i = uv_top_left + [0, h]
+        org = tuple(uv_bottom_left_i.astype(int))
+
+        if outline_color is not None:
+            cv2.putText(
+                img,
+                text=line,
+                org=org,
+                fontFace=fontFace,
+                fontScale=fontScale,
+                color=outline_color,
+                thickness=thickness * 3,
+                lineType=cv2.LINE_AA,
+            )
+        cv2.putText(
+            img,
+            text=line,
+            org=org,
+            fontFace=fontFace,
+            fontScale=fontScale,
+            color=color,
+            thickness=thickness,
+            lineType=cv2.LINE_AA,
+        )
+
+        uv_top_left += [0, h * line_spacing]
     return img
 
 def draw_anno(image, polygon=None, paths=None):
@@ -71,7 +111,14 @@ def draw_anno(image, polygon=None, paths=None):
         for path, points in paths.items():
             points = np.array(points, np.int32)
             image = draw_arrow(image, points[0], points[1], colors[5])
+            image = cv2.putText(image, path, (points[1][0], points[1][1]), 
+                cv2.FONT_HERSHEY_PLAIN, fontScale=1.5, color=colors[5], thickness=3)
     return image
+
+def draw_frame_count(img, frame_id):
+    text = f"Frame:{frame_id}"
+    text_offset = (10, 25)
+    return draw_text(img, text, text_offset, color=(0,255,0))
 
 def load_zone_anno(zone_path):
         with open(zone_path, 'r') as f:
@@ -202,13 +249,13 @@ def visualize_one_frame(img, df):
         fpoint = np.array(eval(fpoint)).astype(int)
         color = eval(color)
         cpoint = np.array([(box[2]+box[0]) / 2, (box[3] + box[1])/2]).astype(int)
+        img = draw_start_last_points(img, fpoint, cpoint, color)
         img = draw_one_box(
                 img, 
                 box, 
                 key=f'id: {track_id}',
                 value=f'cls: {label}',
                 color=color)
-        img = draw_start_last_points(img, fpoint, cpoint, color)
         
     return img
 
@@ -225,12 +272,13 @@ def count_frame_directions(df, count_dict):
         if lframe == frame_id:
             count_dict[direction][label] += 1
 
-    count_text = ""
+    count_text = []
     for dir in count_dict.keys():
-        tmp_text = f"direction: {dir} | "
+        tmp_text = f"direction:{dir} || "
         for cls_id in count_dict[dir].keys():
-            tmp_text += f"{cls_id}: {count_dict[dir][cls_id]} "
-        count_text = count_text + tmp_text + '\n'
+            tmp_text += f"{cls_id}:{count_dict[dir][cls_id]} | "
+        count_text.append(tmp_text)
+    count_text = "\n".join(count_text)
 
     return count_dict, count_text
 
@@ -259,5 +307,5 @@ def visualize_merged(videoloader, csv_path, directions, zones, num_classes, outv
                 img = visualize_one_frame(img, tmp_df)
                 
             img = draw_text(img, text)
-            
+            img = draw_frame_count(img, frame_id)
             outvid.write(img)
