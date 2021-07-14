@@ -55,7 +55,7 @@ def draw_text(img, text):
                 fontScale=font_scale, color=(0, 0, 0), thickness=1)
     return img
 
-def draw_anno(image, polygons=None, paths=None):
+def draw_anno(image, polygon=None, paths=None):
     colors = [(0, 0, 255),  # red    0
               (0, 255, 0),  # green  1
               (255, 0, 0),  # blue   2
@@ -63,13 +63,13 @@ def draw_anno(image, polygons=None, paths=None):
               (128, 0, 128),  # purple 4
               (0, 0, 0),  # black  5
               (255, 255, 255)]  # white  6
-    if polygons:
-        for polygon in polygons:
-            polygon = np.array(polygon, np.int32)
-            polygon = polygon.reshape((-1, 1, 2))
-            image = cv2.polylines(image, [polygon], True, colors[0], 5)
+    if polygon:
+        polygon = np.array(polygon, np.int32)
+        polygon = polygon.reshape((-1, 1, 2))
+        image = cv2.polylines(image, [polygon], True, colors[0], 5)
     if paths:
         for path, points in paths.items():
+            points = np.array(points, np.int32)
             image = draw_arrow(image, points[0], points[1], colors[5])
     return image
 
@@ -85,7 +85,7 @@ def load_zone_anno(zone_path):
         return zone, directions
 
 def find_best_match_direction(obj_vector,paths):
-    return 0
+    return '01'
 
 def save_tracking_to_csv(track_dict, filename):
     num_classes = len(track_dict)
@@ -131,6 +131,9 @@ def save_tracking_to_csv(track_dict, filename):
                 obj_dict['lframe'].append(frame_last)
 
     df = pd.DataFrame(obj_dict)
+
+    df['direction']= df['direction'].astype(str)
+    
     df.to_csv(filename, index=False)
 
 
@@ -183,34 +186,30 @@ def convert_frame_dict(track_dict):
 
     return result_dict
 
-def visualize_one_frame(img, df, polygons, directions, text):
+def visualize_one_frame(img, df):
     # track_id	frame_id	box	color	label	direction	fpoint	lpoint	fframe	lframe
     anns = [
         i for i in zip(
             df.track_id, 
             df.box, 
             df.color, 
-            df.label, 
-            df.direction, 
-            df.fpoint, 
-            df.fframe, 
-            df.lframe)
+            df.label,
+            df.fpoint)
     ]
 
-    for (track_id, box, color, label, direction, fpoint, fframe, lframe) in anns:
+    for (track_id, box, color, label, fpoint) in anns:
         box = eval(box)
         fpoint = np.array(eval(fpoint)).astype(int)
         color = eval(color)
         cpoint = np.array([(box[2]+box[0]) / 2, (box[3] + box[1])/2]).astype(int)
-        img = draw_start_last_points(img, fpoint, cpoint, color)
-        img = draw_anno(img, polygons, directions)
-        img = draw_text(img, text)
         img = draw_one_box(
                 img, 
                 box, 
                 key=f'id: {track_id}',
                 value=f'cls: {label}',
                 color=color)
+        img = draw_start_last_points(img, fpoint, cpoint, color)
+        
     return img
 
 def count_frame_directions(df, count_dict):
@@ -228,10 +227,10 @@ def count_frame_directions(df, count_dict):
 
     count_text = ""
     for dir in count_dict.keys():
-        tmp_text = "direction: {direction} | "
+        tmp_text = f"direction: {dir} | "
         for cls_id in count_dict[dir].keys():
             tmp_text += f"{cls_id}: {count_dict[dir][cls_id]} "
-        count_text = count_text + tmp_text + "\n"
+        count_text = count_text + tmp_text + '\n'
 
     return count_dict, count_text
 
@@ -254,6 +253,11 @@ def visualize_merged(videoloader, csv_path, directions, zones, num_classes, outv
             tmp_df = df[df.frame_id.astype(int) == frame_id]
             count_dict, text = count_frame_directions(tmp_df, count_dict)
 
+            img = draw_anno(img, zones, directions)
+
             if len(tmp_df) > 0:
-                img = visualize_one_frame(img, tmp_df, zones, directions, text)
+                img = visualize_one_frame(img, tmp_df)
+                
+            img = draw_text(img, text)
+            
             outvid.write(img)

@@ -11,8 +11,8 @@ import matplotlib.patches as patches
 from torch.nn.init import _calculate_fan_in_and_fan_out, _no_grad_normal_
 
 STANDARD_COLORS = [
-    'Azure', 'LawnGreen', 'LightBlue' , 'Crimson', 'Gold', 'BlanchedAlmond', 'Bisque',
-    'Aquamarine', 'BlueViolet', 'BurlyWood', 'CadetBlue', 'AntiqueWhite',
+    'LawnGreen', 'LightBlue' , 'Crimson', 'Gold', 'BlanchedAlmond', 'Bisque',
+    'Aquamarine', 'BlueViolet', 'BurlyWood', 'CadetBlue', 'AntiqueWhite','Azure', 
     'Chocolate', 'Coral', 'CornflowerBlue', 'Cornsilk', 'Crimson', 'Cyan',
     'DarkCyan', 'DarkGoldenRod', 'DarkGrey', 'DarkKhaki', 'DarkOrange',
     'DarkOrchid', 'DarkSalmon', 'DarkSeaGreen', 'DarkTurquoise', 'DarkViolet',

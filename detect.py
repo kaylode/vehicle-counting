@@ -57,7 +57,7 @@ class VideoSet:
                 'num_frames': self.NUM_FRAMES
             }
         else:
-            raise f"Cannot read video {os.path.basename(self.input_path)}"
+            assert 0, f"Cannot read video {os.path.basename(self.input_path)}"
 
     def __getitem__(self, idx):
         success, ori_frame = self.stream.read()
@@ -166,12 +166,14 @@ class VideoWriter:
     def write_full_to_video(
         self,
         videoloader,
+        num_classes,
         csv_path,
         paths, polygons):
 
         visualize_merged(
             videoloader, 
             csv_path, 
+            num_classes=num_classes,
             directions = paths, 
             zones = polygons, 
             outvid=self.outvid
@@ -242,8 +244,8 @@ class VideoDetect:
 
                 boxes = outputs['bboxes'] 
 
-                # Here, labels start from 1, but will subtract 1 later
-                labels = outputs['classes'] 
+                # Here, labels start from 1, subtract 1 
+                labels = outputs['classes'] - 1
                 scores = outputs['scores']
 
                 boxes_result.append(boxes)
@@ -296,7 +298,7 @@ class VideoTracker:
             'labels': [],
             'scores': []
         }
-        labels__ = labels.copy() - 1
+        labels__ = labels.copy()
         for i in range(self.num_classes):
             mask = (labels__ == i)     
             bbox_xyxy_ = bbox_xyxy[mask]
@@ -312,7 +314,7 @@ class VideoTracker:
                     box = obj[:4]
                     result_dict['tracks'].append(obj[4])
                     result_dict['boxes'].append(box)
-                    result_dict['labels'].append(i+1)
+                    result_dict['labels'].append(i)
                     # result_dict['scores'].append(obj[6])
 
         result_dict['boxes'] = np.array(result_dict['boxes'])
@@ -476,6 +478,7 @@ class Pipeline:
             videoloader.reinitialize_stream()
             videowriter.write_full_to_video(
                 videoloader,
+                num_classes = len(self.class_names),
                 csv_path=os.path.join(self.saved_path, cam_name+'.csv'),
                 paths=videocounter.directions,
                 polygons=videocounter.polygons)
