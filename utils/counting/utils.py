@@ -304,6 +304,8 @@ def visualize_merged(videoloader, csv_path, directions, zones, num_classes, outv
 
     prev_text = None # Delay direction text by one frame
     for batch in tqdm(videoloader):
+        if batch is None:
+            continue
         imgs = batch['ori_imgs']
         frame_ids = batch['frames']
 
