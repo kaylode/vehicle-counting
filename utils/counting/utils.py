@@ -285,7 +285,7 @@ def count_frame_directions(df, count_dict):
 def visualize_merged(videoloader, csv_path, directions, zones, num_classes, outvid):
     df = pd.read_csv(csv_path)
     count_dict = {
-        dir: {
+        int(dir): {
             label: 0 for label in range(num_classes)
         } for dir in directions
     }
