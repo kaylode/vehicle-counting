@@ -57,7 +57,7 @@ def draw_text(
         )
 
         text_offset_x = 10
-        text_offset_y = img.shape[0] - h*len(lines)
+        text_offset_y = img.shape[0] - h*(len(lines)+1)
         uv_top_left = (text_offset_x, text_offset_y)
     
     uv_top_left = np.array(uv_top_left, dtype=float)
@@ -135,7 +135,19 @@ def load_zone_anno(zone_path):
         return zone, directions
 
 def find_best_match_direction(obj_vector,paths):
-    return '01'
+    """
+    paths: dict {key: vector,...}
+    """
+    directions = paths.keys()
+    best_score = 0
+    best_match = directions[0]
+    for direction_id in directions:
+        vector = paths[direction_id]
+        score = cosin_similarity(obj_vector, vector)
+        if score > best_score:
+            best_score = best_score
+            best_match = direction_id
+    return best_match
 
 def save_tracking_to_csv(track_dict, filename):
     num_classes = len(track_dict)
@@ -181,9 +193,6 @@ def save_tracking_to_csv(track_dict, filename):
                 obj_dict['lframe'].append(frame_last)
 
     df = pd.DataFrame(obj_dict)
-
-    df['direction']= df['direction'].astype(str)
-    
     df.to_csv(filename, index=False)
 
 
@@ -293,7 +302,7 @@ def visualize_merged(videoloader, csv_path, directions, zones, num_classes, outv
         } for dir in directions
     }
 
-    prev_text = "" # Delay direction text by one frame
+    prev_text = None # Delay direction text by one frame
     for batch in tqdm(videoloader):
         imgs = batch['ori_imgs']
         frame_ids = batch['frames']
@@ -309,8 +318,9 @@ def visualize_merged(videoloader, csv_path, directions, zones, num_classes, outv
 
             if len(tmp_df) > 0:
                 img = visualize_one_frame(img, tmp_df)
-                
-            img = draw_text(img, prev_text)
+            
+            if prev_text:
+                img = draw_text(img, prev_text)
             prev_text=text
         
             img = draw_frame_count(img, frame_id)
