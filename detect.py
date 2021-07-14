@@ -63,9 +63,10 @@ class VideoSet:
         success, ori_frame = self.stream.read()
         if not success:
             print(f"Cannot read frame {self.current_frame_id} from {self.video_info['name']}")
-            return None
-        else:
             self.current_frame_id = idx+1
+            return None
+        
+        self.current_frame_id = idx+1
         frame = cv2.cvtColor(ori_frame, cv2.COLOR_BGR2RGB).astype(np.float32)
         frame /= 255.0
         if self.transforms is not None:
@@ -440,6 +441,8 @@ class Pipeline:
             }
 
             for idx, batch in enumerate(tqdm(videoloader)):
+                if batch is None:
+                    continue
                 preds = self.detector.run(batch)
                 ori_imgs = batch['ori_imgs']
 
