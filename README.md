@@ -1,4 +1,4 @@
-# 🚗 🏍️ Vehicle Tracking using YOLOv5 + DeepSORT 🚙 🚌
+# 🏍️ 🚙 Vehicle Tracking using YOLOv5 + DeepSORT 🚌
 
 # UPDATE 16.07.2021 - BIG REFACTOR
 Code is cleaned and working fine now, promise 🤞
