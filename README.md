@@ -1,11 +1,15 @@
-# Vehicle Tracking/Counting using YOLOv5 + DeepSORT
+# 🚗 🏍️ Vehicle Tracking using YOLOv5 + DeepSORT 🚙 🚌
+
+# UPDATE 16.07.2021 - BIG REFACTOR
+Code is cleaned and working fine now, promise 🤞
+
 ## Method
 - Use [YOLOv5](https://github.com/ultralytics/yolov5) for vehicle detection task, only considers objects in Region of Interest (ROI)
 - Use [DeepSORT](https://arxiv.org/abs/1703.07402) for car tracking, not need to retrain this model, only inference
 - Use Cosine Similarity to assign object's tracks to most similar directions.
 - Count each type of vehicle on each direction.
 
-## Notebook
+## 📔 Notebook
 - For inference, use this notebook [![Notebook](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/15pgDMnvXa-ZgGMeZkbbpg-gqa5Nttfi3?usp=sharing)
 - To retrain detection model, follow instructions from [my template](https://github.com/kaylode/custom-template/tree/detection)
 
@@ -21,14 +25,14 @@
 - AIC-HCMC-2020: [link](https://drive.google.com/file/d/1iu4ifOTqnH_t80mL5IGasM6yKxhziPdL/view?usp=sharing)
 <div align="center"><img width="1000" alt="screen" src="demo/dataset.png"></div>
 
-## Pretrained weights
+## 🥇 Pretrained weights
 - Download finetuned YOLOv5 from on AIC-HCMC-2020 dataset:
 
 Model | Image Size | Weights | MAP-S | MAP-M | MAP-L | ALL
 --- | --- | --- | --- | --- | --- | ---
 YOLOv5s | 640x640 | [link](https://drive.google.com/file/d/1urU0JKQqrI-BNtOCwqLSPr-aue1qWN0U/view?usp=sharing) | 0.068 | 0.312 | 0.390 | 0.32
 
-## **Inference**
+## 🌟 **Inference**
 
 - File structure
 ```
