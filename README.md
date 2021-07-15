@@ -23,6 +23,27 @@ Code is cleaned and working fine now, promise 🤞
 
 ## Dataset
 - AIC-HCMC-2020: [link](https://drive.google.com/file/d/1iu4ifOTqnH_t80mL5IGasM6yKxhziPdL/view?usp=sharing)
+- Direction and ROI annotation format:
+```
+cam_01.json # match video name
+{
+    "shapes": [
+        {
+            "label": "zone",
+            "points": [[x1,y1], [x2,y2], [x3,y3], [x4,y4], ... ] #Points of a polygon
+        },
+        {
+            "label": "direction01",
+            "points": [[x1,y1], [x2,y2]] #Points of vector
+        },
+        {
+            "label": "direction{id}",
+            "points": [[x1,y1], [x2,y2]]
+        },...
+    ],
+}
+```
+
 <div align="center"><img width="1000" alt="screen" src="demo/dataset.png"></div>
 
 ## 🥇 Pretrained weights
@@ -30,7 +51,7 @@ Code is cleaned and working fine now, promise 🤞
 
 Model | Image Size | Weights | MAP-S | MAP-M | MAP-L | ALL
 --- | --- | --- | --- | --- | --- | ---
-YOLOv5s | 640x640 | [link](https://drive.google.com/file/d/1urU0JKQqrI-BNtOCwqLSPr-aue1qWN0U/view?usp=sharing) | 0.068 | 0.312 | 0.390 | 0.32
+YOLOv5s | 640x640 | [link](https://drive.google.com/file/d/1-435kvHfJjXUpO5JhJv5mLueY2vHGwPN/view?usp=sharing) | 0.17 | 0.466 | 0.487 | 0.466
 
 ## 🌟 **Inference**
 
