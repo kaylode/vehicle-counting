@@ -52,6 +52,7 @@ cam_01.json # match video name
 Model | Image Size | Weights | MAP-S | MAP-M | MAP-L | ALL
 --- | --- | --- | --- | --- | --- | ---
 YOLOv5s | 640x640 | [link](https://drive.google.com/file/d/1-435kvHfJjXUpO5JhJv5mLueY2vHGwPN/view?usp=sharing) | 0.17 | 0.466 | 0.487 | 0.466
+YOLOv5m | 640x640 | [link](https://drive.google.com/file/d/1-6WLs6tSw8by6p61QOMpBDbnipSmkRPW/view?usp=sharing) | 0.187 | 0.487 | 0.501 | 0.481
 
 ## 🌟 **Inference**
 
