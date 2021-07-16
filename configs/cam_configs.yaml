@@ -1,283 +1,40 @@
 settings:
-  zone_path: "./data/aicity21/zone"
+  zone_path: "../annotations/zones_movement_paths"
   checkpoint: "./models/deepsort/deep/checkpoint/ckpt.t7"
   cam:
-    cam_1:
+    cam_01:
       tracking_config:
         MAX_DIST: 0.2
-        MIN_CONFIDENCE: 0.5
+        MIN_CONFIDENCE: 0.25
         NMS_MAX_OVERLAP: 0.5
         MAX_IOU_DISTANCE: 0.6
-        MAX_AGE: 15
+        MAX_AGE: 30
+        N_INIT: 4
+        NN_BUDGET: 60
+    cam_04:
+      tracking_config:
+        MAX_DIST: 0.2
+        MIN_CONFIDENCE: 0.25
+        NMS_MAX_OVERLAP: 0.5
+        MAX_IOU_DISTANCE: 0.6
+        MAX_AGE: 30
         N_INIT: 3
         NN_BUDGET: 60
-    cam_1_dawn: 
-      tracking_config:
-        MAX_DIST: 0.3
-        MIN_CONFIDENCE: 0.5
-        NMS_MAX_OVERLAP: 0.9
-        MAX_IOU_DISTANCE: 0.8
-        MAX_AGE: 15
-        N_INIT: 4
-        NN_BUDGET: 60
-    cam_1_rain: 
-      tracking_config:
-        MAX_DIST: 0.3
-        MIN_CONFIDENCE: 0.5
-        NMS_MAX_OVERLAP: 0.9
-        MAX_IOU_DISTANCE: 0.8
-        MAX_AGE: 15
-        N_INIT: 4
-        NN_BUDGET: 60
-    cam_2: 
-      tracking_config:
-        MAX_DIST: 0.3
-        MIN_CONFIDENCE: 0.5
-        NMS_MAX_OVERLAP: 0.8
-        MAX_IOU_DISTANCE: 0.6
-        MAX_AGE: 15
-        N_INIT: 5
-        NN_BUDGET: 60
-    cam_2_rain: 
-      tracking_config:
-        MAX_DIST: 0.3
-        MIN_CONFIDENCE: 0.5
-        NMS_MAX_OVERLAP: 0.8
-        MAX_IOU_DISTANCE: 0.8
-        MAX_AGE: 15
-        N_INIT: 5
-        NN_BUDGET: 40
-    cam_3: 
+    cam_07:
       tracking_config:
         MAX_DIST: 0.2
-        MIN_CONFIDENCE: 0.5
-        NMS_MAX_OVERLAP: 0.4
-        MAX_IOU_DISTANCE: 0.7
-        MAX_AGE: 15
-        N_INIT: 5
-        NN_BUDGET: 60
-    cam_3_rain: 
-      tracking_config:
-        MAX_DIST: 0.2
-        MIN_CONFIDENCE: 0.5
-        NMS_MAX_OVERLAP: 0.4
-        MAX_IOU_DISTANCE: 0.8
-        MAX_AGE: 15
-        N_INIT: 5
-        NN_BUDGET: 60
-    cam_4: 
-      tracking_config:
-        MAX_DIST: 0.4
-        MIN_CONFIDENCE: 0.3
-        NMS_MAX_OVERLAP: 0.7
-        MAX_IOU_DISTANCE: 0.6
-        MAX_AGE: 15
-        N_INIT: 4
-        NN_BUDGET: 60
-    cam_4_rain: 
-      tracking_config:
-        MAX_DIST: 0.4
         MIN_CONFIDENCE: 0.25
-        NMS_MAX_OVERLAP: 0.6
-        MAX_IOU_DISTANCE: 0.9
-        MAX_AGE: 15
+        NMS_MAX_OVERLAP: 0.5
+        MAX_IOU_DISTANCE: 0.6
+        MAX_AGE: 30
         N_INIT: 4
         NN_BUDGET: 60
-    cam_4_dawn: 
+    cam_09:
       tracking_config:
-        MAX_DIST: 0.4
-        MIN_CONFIDENCE: 0.3
-        NMS_MAX_OVERLAP: 0.7
+        MAX_DIST: 0.2
+        MIN_CONFIDENCE: 0.25
+        NMS_MAX_OVERLAP: 0.5
         MAX_IOU_DISTANCE: 0.6
-        MAX_AGE: 15
+        MAX_AGE: 30
         N_INIT: 4
-        NN_BUDGET: 60
-    cam_5: 
-      tracking_config:
-        MAX_DIST: 0.3
-        MIN_CONFIDENCE: 0.5
-        NMS_MAX_OVERLAP: 0.5
-        MAX_IOU_DISTANCE: 0.6
-        MAX_AGE: 15
-        N_INIT: 4
-        NN_BUDGET: 60
-    cam_5_dawn: 
-      tracking_config:
-        MAX_DIST: 0.3
-        MIN_CONFIDENCE: 0.5
-        NMS_MAX_OVERLAP: 0.5
-        MAX_IOU_DISTANCE: 0.8
-        MAX_AGE: 15
-        N_INIT: 4
-        NN_BUDGET: 60
-    cam_5_rain: 
-      tracking_config:
-        MAX_DIST: 0.3
-        MIN_CONFIDENCE: 0.5
-        NMS_MAX_OVERLAP: 0.5
-        MAX_IOU_DISTANCE: 0.8
-        MAX_AGE: 15
-        N_INIT: 4
-        NN_BUDGET: 60
-    cam_6: 
-      tracking_config:
-        MAX_DIST: 0.3
-        MIN_CONFIDENCE: 0.5
-        NMS_MAX_OVERLAP: 0.5
-        MAX_IOU_DISTANCE: 0.8
-        MAX_AGE: 15
-        N_INIT: 4
-        NN_BUDGET: 60
-    cam_6_snow: 
-      tracking_config:
-        MAX_DIST: 0.3
-        MIN_CONFIDENCE: 0.5
-        NMS_MAX_OVERLAP: 0.5
-        MAX_IOU_DISTANCE: 0.7
-        MAX_AGE: 15
-        N_INIT: 4
-        NN_BUDGET: 60
-    cam_7: 
-      tracking_config:
-        MAX_DIST: 0.3
-        MIN_CONFIDENCE: 0.3
-        NMS_MAX_OVERLAP: 0.5
-        MAX_IOU_DISTANCE: 0.6
-        MAX_AGE: 15
-        N_INIT: 6
-        NN_BUDGET: 70
-    cam_7_rain: 
-      tracking_config:
-        MAX_DIST: 0.3
-        MIN_CONFIDENCE: 0.3
-        NMS_MAX_OVERLAP: 0.5
-        MAX_IOU_DISTANCE: 0.6
-        MAX_AGE: 15
-        N_INIT: 6
-        NN_BUDGET: 70
-    cam_7_dawn: 
-      tracking_config:
-        MAX_DIST: 0.3
-        MIN_CONFIDENCE: 0.3
-        NMS_MAX_OVERLAP: 0.5
-        MAX_IOU_DISTANCE: 0.6
-        MAX_AGE: 15
-        N_INIT: 6
-        NN_BUDGET: 70
-    cam_8: 
-      tracking_config:
-        MAX_DIST: 0.2
-        MIN_CONFIDENCE: 0.2
-        NMS_MAX_OVERLAP: 0.4
-        MAX_IOU_DISTANCE: 0.5
-        MAX_AGE: 15
-        N_INIT: 5
-        NN_BUDGET: 60
-    cam_9: 
-      tracking_config:
-        MAX_DIST: 0.2
-        MIN_CONFIDENCE: 0.5
-        NMS_MAX_OVERLAP: 0.6
-        MAX_IOU_DISTANCE: 0.7
-        MAX_AGE: 15
-        N_INIT: 4
-        NN_BUDGET: 60
-    cam_10: 
-      tracking_config:
-        MAX_DIST: 0.2
-        MIN_CONFIDENCE: 0.7
-        NMS_MAX_OVERLAP: 0.5
-        MAX_IOU_DISTANCE: 0.6
-        MAX_AGE: 15
-        N_INIT: 6
-        NN_BUDGET: 60
-    cam_11: 
-      tracking_config:
-        MAX_DIST: 0.2
-        MIN_CONFIDENCE: 0.7
-        NMS_MAX_OVERLAP: 0.5
-        MAX_IOU_DISTANCE: 0.6
-        MAX_AGE: 15
-        N_INIT: 6
-        NN_BUDGET: 60
-    cam_12: 
-      tracking_config:
-        MAX_DIST: 0.2
-        MIN_CONFIDENCE: 0.7
-        NMS_MAX_OVERLAP: 0.5
-        MAX_IOU_DISTANCE: 0.6
-        MAX_AGE: 15
-        N_INIT: 6
-        NN_BUDGET: 60
-    cam_13: 
-      tracking_config:
-        MAX_DIST: 0.2
-        MIN_CONFIDENCE: 0.7
-        NMS_MAX_OVERLAP: 0.5
-        MAX_IOU_DISTANCE: 0.6
-        MAX_AGE: 15
-        N_INIT: 6
-        NN_BUDGET: 60
-    cam_14: 
-      tracking_config:
-        MAX_DIST: 0.2
-        MIN_CONFIDENCE: 0.7
-        NMS_MAX_OVERLAP: 0.5
-        MAX_IOU_DISTANCE: 0.6
-        MAX_AGE: 15
-        N_INIT: 6
-        NN_BUDGET: 60
-    cam_15: 
-      tracking_config:
-        MAX_DIST: 0.3
-        MIN_CONFIDENCE: 0.3
-        NMS_MAX_OVERLAP: 0.5
-        MAX_IOU_DISTANCE: 0.4
-        MAX_AGE: 15
-        N_INIT: 6
-        NN_BUDGET: 60
-    cam_16: 
-      tracking_config:
-        MAX_DIST: 0.2
-        MIN_CONFIDENCE: 0.5
-        NMS_MAX_OVERLAP: 0.5
-        MAX_IOU_DISTANCE: 0.6
-        MAX_AGE: 15
-        N_INIT: 6
-        NN_BUDGET: 60
-    cam_17: 
-      tracking_config:
-        MAX_DIST: 0.2
-        MIN_CONFIDENCE: 0.7
-        NMS_MAX_OVERLAP: 0.5
-        MAX_IOU_DISTANCE: 0.6
-        MAX_AGE: 15
-        N_INIT: 6
-        NN_BUDGET: 60
-    cam_18: 
-      tracking_config:
-        MAX_DIST: 0.2
-        MIN_CONFIDENCE: 0.7
-        NMS_MAX_OVERLAP: 0.5
-        MAX_IOU_DISTANCE: 0.6
-        MAX_AGE: 15
-        N_INIT: 6
-        NN_BUDGET: 60
-    cam_19: 
-      tracking_config:
-        MAX_DIST: 0.2
-        MIN_CONFIDENCE: 0.7
-        NMS_MAX_OVERLAP: 0.5
-        MAX_IOU_DISTANCE: 0.6
-        MAX_AGE: 15
-        N_INIT: 6
-        NN_BUDGET: 60
-    cam_20: 
-      tracking_config:
-        MAX_DIST: 0.2
-        MIN_CONFIDENCE: 0.7
-        NMS_MAX_OVERLAP: 0.5
-        MAX_IOU_DISTANCE: 0.6
-        MAX_AGE: 15
-        N_INIT: 6
         NN_BUDGET: 60
