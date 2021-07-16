@@ -67,7 +67,7 @@ this repo
 - Install dependencies by ```pip install -r requirements.txt```
 - To run full pipeline:
 ```
-python detect.py --input_path=<input video or dir> --output_path=<output dir> --weight=<trained weight>
+python run.py --input_path=<input video or dir> --output_path=<output dir> --weight=<trained weight>
 ```
 - **Extra Parameters**:
     - ***--min_conf***:     minimum confident for detection
