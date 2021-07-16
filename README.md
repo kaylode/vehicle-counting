@@ -14,10 +14,10 @@ Code is cleaned and working fine now, promise 🤞
 - To retrain detection model, follow instructions from [my template](https://github.com/kaylode/custom-template/tree/detection)
 
 ## Results
-| | |
-|:-------------------------:|:-------------------------:|
-|<img width="1604" alt="screen" src="demo/cam_09.gif"> | <img width="1604" alt="screen" src="demo/cam_10.gif"> | 
-|<img width="1604" alt="screen" src="demo/cam_07.gif"> | <img width="1604" alt="screen" src="demo/cam_08.gif">|
+
+|<img width="1604" alt="screen" src="demo/cam_04.gif">|
+|:-------------------------:|
+|<img width="1604" alt="screen" src="demo/cam_07.gif">|
 
 -----------------------------------------------------------
 
