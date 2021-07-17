@@ -1,5 +1,5 @@
 settings:
-  zone_path: "../annotations/zones_movement_paths"
+  zone_path: "./demo/sample"
   checkpoint: "./models/deepsort/deep/checkpoint/ckpt.t7"
   cam:
     cam_01:
