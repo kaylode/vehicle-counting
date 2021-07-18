@@ -51,6 +51,7 @@ cam_01.json # match video name
 
 Model | Image Size | Weights | MAP-S | MAP-M | MAP-L | ALL
 --- | --- | --- | --- | --- | --- | ---
+EfficientDet-D2 | 640x640 | [link](https://drive.google.com/file/d/1-7aUP1LVfKXvxsXtS9gW6dj9KNGH5r1_/view?usp=sharing) | 0.061 | 0.456 | 0.475 | 0.451
 YOLOv5s | 640x640 | [link](https://drive.google.com/file/d/1-435kvHfJjXUpO5JhJv5mLueY2vHGwPN/view?usp=sharing) | 0.17 | 0.466 | 0.487 | 0.466
 YOLOv5m | 640x640 | [link](https://drive.google.com/file/d/1-6WLs6tSw8by6p61QOMpBDbnipSmkRPW/view?usp=sharing) | 0.187 | 0.487 | 0.501 | 0.481
 
