@@ -47,12 +47,15 @@ if __name__ == '__main__':
         'tta_iou_threshold',
     ]
 
-    config = get_config(args.weight, ignore_keys)
+    if args.weight is None:
+        config = None
+    else:
+        config = get_config(args.weight, ignore_keys)
     if config is None:
         print("Config not found. Load configs from configs/configs.yaml")
         config = Config(os.path.join('configs','configs.yaml'))
     else:
-        print("Load configs from weight")    
+        print("Load configs from weight")  
 
     main(args, config)
     

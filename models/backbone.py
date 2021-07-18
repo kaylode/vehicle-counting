@@ -4,29 +4,21 @@ import torch
 import torchvision
 import numpy as np
 from torch import nn
-from .effdet import get_efficientdet_config, EfficientDet, DetBenchTrain, load_pretrained, load_checkpoint, HeadNet
+from .effdet import get_efficientdet_config, EfficientDet, DetBenchTrain, HeadNet
 from .yolo import YoloLoss, Yolov4, non_max_suppression, Yolov5
-from utils.utils import download_pretrained_weights
 
-CACHE_DIR='./.cache'
-
-def get_model(args, config, num_classes):
+def get_model(args, config, num_classes=None):
     
-    NUM_CLASSES = num_classes
     max_post_nms = config.max_post_nms if config.max_post_nms > 0 else None
     max_pre_nms = config.max_pre_nms if config.max_pre_nms > 0 else None
-    load_weights = True
-    
     net = None
 
     if config.model_name.startswith('efficientdet'):
         compound_coef = config.model_name.split('-')[1]
         assert compound_coef in [f'd{i}' for i in range(8)], f"efficientdet version {compound_coef} is not supported"  
         net = EfficientDetBackbone(
-            num_classes=NUM_CLASSES+1, 
+            num_classes=num_classes, 
             compound_coef=compound_coef, 
-            load_weights=load_weights, 
-            freeze_backbone = getattr(args, 'freeze_backbone', False),
             freeze_batchnorm = getattr(args, 'freeze_bn', False),
             max_pre_nms=max_pre_nms,
             image_size=config.image_size)
@@ -35,8 +27,7 @@ def get_model(args, config, num_classes):
         version_name = config.model_name.split('v')[1]
         net = YoloBackbone(
             version_name=version_name,
-            load_weights=load_weights, 
-            num_classes=NUM_CLASSES, 
+            num_classes=num_classes, 
             max_pre_nms=max_pre_nms,
             max_post_nms=max_post_nms)
   
@@ -58,11 +49,9 @@ class BaseBackbone(nn.Module):
 class EfficientDetBackbone(BaseBackbone):
     def __init__(
         self, 
-        num_classes=80, 
+        num_classes=90, 
         compound_coef='d0', 
-        load_weights=True, 
         image_size=[512,512], 
-        freeze_backbone=False, 
         freeze_batchnorm = False,
         max_pre_nms=None,
         max_post_nms=None,
@@ -73,6 +62,9 @@ class EfficientDetBackbone(BaseBackbone):
         config = get_efficientdet_config(f'tf_efficientdet_{compound_coef}')
         config.image_size = image_size
         config.norm_kwargs=dict(eps=.001, momentum=.01)
+
+        if num_classes is None:
+            num_classes = 90
 
         if max_pre_nms is None:
             max_pre_nms = 5000
@@ -85,20 +77,15 @@ class EfficientDetBackbone(BaseBackbone):
         
         net = EfficientDet(
             config, 
-            pretrained_backbone=load_weights, 
-            freeze_backbone=freeze_backbone)
-        
-        if load_weights:
-            load_pretrained(net, config.url)
+            pretrained_backbone=False)
 
         if freeze_batchnorm:
             print("freeze batchnorm")
             freeze_bn(net.backbone)
             freeze_bn(net.fpn)
 
-        if num_classes != 90:
-            net.reset_head(num_classes=num_classes)
-            net.class_net = HeadNet(config, num_outputs=num_classes)
+        net.reset_head(num_classes=num_classes)
+        net.class_net = HeadNet(config, num_outputs=num_classes)
 
         self.model = DetBenchTrain(net, config)
 
@@ -148,9 +135,8 @@ class YoloBackbone(BaseBackbone):
     def __init__(
         self,
         version_name='5s',
-        num_classes=80, 
+        num_classes=None, 
         max_pre_nms=None,
-        load_weights=True, 
         max_post_nms=None,
         **kwargs):
 
@@ -164,6 +150,9 @@ class YoloBackbone(BaseBackbone):
             max_post_nms = 300
         self.max_post_nms = max_post_nms
 
+        if num_classes is None:
+            num_classes = 80
+
         version = version_name[0]
         if version=='4':
             version_mode = version_name.split('-')[1]
@@ -172,22 +161,11 @@ class YoloBackbone(BaseBackbone):
                 cfg=f'./models/yolo/configs/yolov4-{version_mode}.yaml', ch=3, nc=num_classes
             )
         elif version =='5':
-            version_mode = version_name[-1]
+            version_mode = version_name[1]
             self.name = f'yolov5{version_mode}'
             self.model = Yolov5(
                 cfg=f'./models/yolo/configs/yolov5{version_mode}.yaml', ch=3, nc=num_classes
             )
-        
-
-        if load_weights:
-            tmp_path = os.path.join(CACHE_DIR, f'yolo{version_name}.pth')
-            download_pretrained_weights(f'yolov{version_name}', tmp_path)
-            ckpt = torch.load(tmp_path, map_location='cpu')  # load checkpoint
-            try:
-                ret = self.model.load_state_dict(ckpt, strict=False) 
-            except:
-                pass
-            print("Loaded pretrained model")
 
         self.model = nn.DataParallel(self.model).cuda()
         self.loss_fn = YoloLoss(

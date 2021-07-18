@@ -1,8 +1,11 @@
+import os
 import torch
 from augmentations import TTA
 from models import get_model, Detector
 from trainer import get_class_names, load_checkpoint
-from utils import postprocessing
+from utils import postprocessing, download_pretrained_weights, CACHE_DIR
+
+
 
 class ImageDetect:
     def __init__(self, args, config):
@@ -14,6 +17,7 @@ class ImageDetect:
         self.max_dets=config.max_post_nms
         self.keep_ratio=config.keep_ratio
         self.fusion_mode=config.fusion_mode
+        self.class_names = None
 
         if args.tta:
             self.tta = TTA(
@@ -23,20 +27,24 @@ class ImageDetect:
         else:
             self.tta = None
 
-        if args.weight is not None:
-            self.class_names, num_classes = get_class_names(args.weight)
-        # self.class_names.insert(0, 'Background')
+        if args.weight is None:
+            args.weight = os.path.join(CACHE_DIR, f'{config.model_name}.pth')
+            download_pretrained_weights(f'{config.model_name}', args.weight)
 
+        self.class_names, num_classes = get_class_names(args.weight)
+        
         net = get_model(
             args, config,
             num_classes=num_classes)
 
-        self.num_classes = num_classes
         self.model = Detector(model = net, device = self.device)
         self.model.eval()
-
+        
         if args.weight is not None:                
             load_checkpoint(self.model, args.weight)
+
+        for param in self.model.parameters():
+            param.requires_grad = False
 
     def run(self, batch):
         with torch.no_grad():
