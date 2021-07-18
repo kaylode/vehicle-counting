@@ -15,6 +15,7 @@ parser.add_argument('--tta_ensemble_mode', type=str, default='wbf', help='tta en
 parser.add_argument('--tta_conf_threshold', type=float, default=0.01, help='tta confidence score threshold')
 parser.add_argument('--tta_iou_threshold', type=float, default=0.9, help='tta iou threshold')
 parser.add_argument('--debug', action='store_true', help='save detection at')
+parser.add_argument('--mapping', default=None, help='Specify a class mapping if using pretrained')
 
 def main(args, config):
     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpus
@@ -56,6 +57,18 @@ if __name__ == '__main__':
         config = Config(os.path.join('configs','configs.yaml'))
     else:
         print("Load configs from weight")  
+
+    # If you not use any weight and want to use pretrained on COCO, uncomment these lines
+    
+    # MAPPING_DICT = {
+    #     0: 0,
+    #     1: 0,
+    #     2: 1,
+    #     3: 0,
+    #     5: 2,
+    #     7: 3
+    # }
+    # args.mapping_dict = MAPPING_DICT
 
     main(args, config)
     

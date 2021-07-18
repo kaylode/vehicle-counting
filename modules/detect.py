@@ -1,4 +1,5 @@
 import os
+import numpy as np
 import torch
 from augmentations import TTA
 from models import get_model, Detector
@@ -18,6 +19,7 @@ class ImageDetect:
         self.keep_ratio=config.keep_ratio
         self.fusion_mode=config.fusion_mode
         self.class_names = None
+        self.mapping_dict = args.mapping_dict        
 
         if args.tta:
             self.tta = TTA(
@@ -33,6 +35,12 @@ class ImageDetect:
 
         self.class_names, num_classes = get_class_names(args.weight)
         
+        if self.mapping_dict is not None:
+            self.included_classes = list(self.mapping_dict.keys())
+            class_ids = list(self.mapping_dict.values())
+            sorted_unique_class_ids = sorted(np.unique(class_ids))
+            self.class_names = [self.class_names[i] for i in sorted_unique_class_ids]
+
         net = get_model(
             args, config,
             num_classes=num_classes)
@@ -63,6 +71,13 @@ class ImageDetect:
                 img_ori_ws = batch['image_ori_ws'][idx]
                 img_ori_hs = batch['image_ori_hs'][idx]
                 
+                if self.mapping_dict is not None:
+                    keep_idx = [enum for enum, i in enumerate(outputs["classes"]) if i-1 in self.included_classes]
+                    labels = [self.mapping_dict[int(i)-1]+1 for i in outputs["classes"][keep_idx]]
+                    outputs["classes"] = np.array(labels)
+                    outputs['scores'] = outputs['scores'][keep_idx]
+                    outputs['bboxes'] = outputs['bboxes'][keep_idx]
+
                 outputs = postprocessing(
                     outputs, 
                     current_img_size=[img_w, img_h],

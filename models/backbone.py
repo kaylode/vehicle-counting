@@ -6,9 +6,10 @@ import numpy as np
 from torch import nn
 from .effdet import get_efficientdet_config, EfficientDet, DetBenchTrain, HeadNet
 from .yolo import YoloLoss, Yolov4, non_max_suppression, Yolov5
+from augmentations import MEAN, STD
 
 def get_model(args, config, num_classes=None):
-    
+    global MEAN, STD
     max_post_nms = config.max_post_nms if config.max_post_nms > 0 else None
     max_pre_nms = config.max_pre_nms if config.max_pre_nms > 0 else None
     net = None
@@ -23,6 +24,10 @@ def get_model(args, config, num_classes=None):
             max_pre_nms=max_pre_nms,
             image_size=config.image_size)
 
+        # If use EfficientDet, use these numbers
+        MEAN = [0.485, 0.456, 0.406]
+        STD = [0.229, 0.224, 0.225]
+
     elif config.model_name.startswith('yolo'):
         version_name = config.model_name.split('v')[1]
         net = YoloBackbone(
@@ -30,6 +35,10 @@ def get_model(args, config, num_classes=None):
             num_classes=num_classes, 
             max_pre_nms=max_pre_nms,
             max_post_nms=max_post_nms)
+
+        # If use YOLO, use these numbers
+        MEAN = [0.0, 0.0, 0.0]
+        STD = [1.0, 1.0, 1.0]
   
     # if args.sync_bn:
     #     net = nn.SyncBatchNorm.convert_sync_batchnorm(net).to(device)
