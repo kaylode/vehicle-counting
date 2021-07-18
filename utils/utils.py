@@ -194,12 +194,23 @@ def download_weights(id_or_url, cached=None, md5=None, quiet=False):
 
     return gdown.cached_download(url=url, path=cached, md5=md5, quiet=quiet)
 
-
 weight_url = {
-    "yolov5s": "1-4XEt2xLtoTDF0RYEh-WlbQWi-HouJxR" ,
-    "yolov5m": "1-9ra0DEo5AjXmopm2cAkI_eqlD1DVwrF" ,
-    "yolov5l": "1-Bsl9DayZtKx-POlhZM2dN7PBo1dmbHJ",
-    "yolov5x": "1-HTVvUR88cXixngUbtScCSK42hlcNm1g",
+    "yolov5s": "1-2HxtYEqhUtKfUJ-KcnzhHOYGTXq1yFR" ,
+    "yolov5m": "1ncet_QWTjHMtfKZwXHuYAXBMfSlyuqU7" ,
+    "yolov5l": "1-37KYlOyWiPSjdMuQl9NJi3jH9UvOZpi",
+    "yolov5x": "1-4G15VX2jqaUEnXwu8fcNFtYHSe6U0zL",
+    "yolov5s6": "1grHwwMPZh51zihsnUaaCivrA9rfs5an3",
+    "yolov5m6": "1--FFLutj8WNemE7atcA4B4o-oaIfOQAa",
+    "yolov5l6": "1gmU5pn93SMI5ZFFlAr0F2-sELXujyMuL",
+    "yolov5x6": "1-0mzWilrNOEaHNvUUW0AoiAoNUPS5hUL",
+    "efficientdet-d0": "1-HuqtmQieer05LFqzMCJhzLVlGN7eoaA",
+    "efficientdet-d1": "1-H-em-W2p9cKoxjXJHDogoB8aJWwKa7B",
+    "efficientdet-d2": "1-SGhC8W6uhN7EaNjueUemqRT2MjQ5D_N",
+    "efficientdet-d3": "1-T-8kSzn__csgYVcEDdKOUux86rmAe7d",
+    "efficientdet-d4": "1-fvTgw38tzG7XbLxK0k3JD7Z6tP6j2m7",
+    "efficientdet-d5": "1-gEU7Y0gFV5S3XW1VviWZXYmhlmcMi-w",
+    "efficientdet-d6": "1-hTftFumisKkRwxZ8DHb5gkzC8o_uwpE",
+    "efficientdet-d7": "1-lMAUdU8S-5nzu_ubBuaqcFtZc94D_3c",
 }
 
 def download_pretrained_weights(name, cached=None):
