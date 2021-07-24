@@ -4,7 +4,7 @@
 Code is cleaned and working fine now, promise 🤞
 
 ## Method
-- Use [YOLOv5](https://github.com/ultralytics/yolov5) for vehicle detection task, only considers objects in Region of Interest (ROI)
+- Use [YOLOv5](https://github.com/ultralytics/yolov5) or [EfficientDet](https://arxiv.org/abs/1911.09070) for vehicle detection task, only considers objects in Region of Interest (ROI)
 - Use [DeepSORT](https://arxiv.org/abs/1703.07402) for car tracking, not need to retrain this model, only inference
 - Use Cosine Similarity to assign object's tracks to most similar directions.
 - Count each type of vehicle on each direction.
@@ -47,10 +47,11 @@ cam_01.json # match video name
 <div align="center"><img width="1000" alt="screen" src="demo/dataset.png"></div>
 
 ## 🥇 Pretrained weights
-- Download finetuned YOLOv5 from on AIC-HCMC-2020 dataset:
+- Download finetuned models from on AIC-HCMC-2020 dataset:
 
 Model | Image Size | Weights | MAP-S | MAP-M | MAP-L | ALL
 --- | --- | --- | --- | --- | --- | ---
+EfficientDet-D2 | 640x640 | [link](https://drive.google.com/file/d/1-7aUP1LVfKXvxsXtS9gW6dj9KNGH5r1_/view?usp=sharing) | 0.061 | 0.456 | 0.475 | 0.451
 YOLOv5s | 640x640 | [link](https://drive.google.com/file/d/1-435kvHfJjXUpO5JhJv5mLueY2vHGwPN/view?usp=sharing) | 0.17 | 0.466 | 0.487 | 0.466
 YOLOv5m | 640x640 | [link](https://drive.google.com/file/d/1-6WLs6tSw8by6p61QOMpBDbnipSmkRPW/view?usp=sharing) | 0.187 | 0.487 | 0.501 | 0.481
 
