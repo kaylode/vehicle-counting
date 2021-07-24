@@ -128,6 +128,9 @@ class VideoWriter:
         self.saved_path = saved_path
         self.obj_list = obj_list
 
+        if not os.path.exists(self.saved_path):
+            os.makedirs(self.saved_path, exist_ok=True)
+            
         video_name = self.video_info['name']
         outpath =os.path.join(self.saved_path, video_name)
         self.FPS = self.video_info['fps']

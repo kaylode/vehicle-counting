@@ -19,7 +19,7 @@ class ImageDetect:
         self.keep_ratio=config.keep_ratio
         self.fusion_mode=config.fusion_mode
         self.class_names = None
-        self.mapping_dict = args.mapping_dict        
+        self.mapping_dict = args.mapping     
 
         if args.tta:
             self.tta = TTA(
