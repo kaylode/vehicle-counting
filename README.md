@@ -2,7 +2,7 @@
 
 
 <details open> <summary><strong>Dev logs</strong></summary>
- <strong><i>[16/07/2021]</i></strong> BIG REFACTOR Code is cleaned and working fine now, promise 🤞
+ <strong><i>[16/07/2021]</i></strong> BIG REFACTOR Code is cleaned and working fine now, promise 🤞 <br>
  <strong><i>[27/09/2021]</i></strong> All trained checkpoints on AIC-HCMC-2020 have been lost. Now use pretrained models on COCO for inference. 
 </details>
 
