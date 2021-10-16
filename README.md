@@ -25,7 +25,7 @@
 -----------------------------------------------------------
 
 ## Dataset
-- AIC-HCMC-2020: [link](https://drive.google.com/file/d/1iu4ifOTqnH_t80mL5IGasM6yKxhziPdL/view?usp=sharing)
+- AIC-HCMC-2020: [link](https://drive.google.com/drive/folders/15C6u58NDE8WQQSFflvhT_VEbLOtCG33A?usp=sharing)
 - Direction and ROI annotation format:
 ```
 cam_01.json # match video name
