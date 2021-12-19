@@ -43,7 +43,7 @@ if __name__ == '__main__':
         5: 2,
         7: 3
     }
-    args.mapping_dict = MAPPING_DICT
+    args.mapping_dict = None #MAPPING_DICT
 
     main(args, config)
     

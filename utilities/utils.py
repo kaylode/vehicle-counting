@@ -186,7 +186,7 @@ def write_to_video(img, boxes, labels, scores=None, tracks=None, imshow=True,  o
     if outvid is not None:
         outvid.write(img)
 
-def download_weights(id_or_url, cached=None, md5=None, quiet=False):
+def download_drive(id_or_url, cached=None, md5=None, quiet=False):
     if id_or_url.startswith('http'):
         url = id_or_url
     else:
@@ -194,19 +194,18 @@ def download_weights(id_or_url, cached=None, md5=None, quiet=False):
 
     return gdown.cached_download(url=url, path=cached, md5=md5, quiet=quiet)
 
+def download_hub(url, dest):
+    torch.hub.download_url_to_file(url, str(dest))
+    return dest
+
+def download_weights(url, dest):
+    return download_hub(url, dest)
+
 weight_url = {
-    "yolov5s": "1-fV07Mo1M4em2qDaYWCd1koAyeRjSKSK" ,
-    "yolov5m": "1-WhZglaESLJPwi21UIq1XVSwqLd5FNdM" ,
-    "yolov5l": "1-X6oMPO-NuM1vSUfUYxgJZIMCiLJuU9G",
-    "yolov5x": "1-f3HCj0zrrIQxaBRri-Bh7AfgmKh8N2h",
-    "efficientdet-d0": "1bYL2Qmp5lMV6o3IKRYQ5UZ4iC1-n4zQ2",
-    "efficientdet-d1": "1QnTnypsLozFdBubzT4l9-okYO4jktN3W",
-    "efficientdet-d2": "1r-w-BB9eSmpvfdFID9dw9tBSXf72COGQ",
-    "efficientdet-d3": "1--PIGOM4n6Jzz_K9Xagd9uN-PzhJFPQD",
-    "efficientdet-d4": "1--lyKXCh54vcqi5OOS8cQtifTwwl_i_x",
-    "efficientdet-d5": "1-39SISgloeYAb34e696NJXfv7nWWirJZ",
-    "efficientdet-d6": "1-5qk2N3o-4UenKH34zl1bq7czyl77mXs",
-    "efficientdet-d7": "1-DKTyB3hopAXu01lTikO2M7etTy0WmMK",
+    "yolov5s": "https://github.com/ultralytics/yolov5/releases/download/v6.0/yolov5s.pt" ,
+    "yolov5m": "https://github.com/ultralytics/yolov5/releases/download/v6.0/yolov5m.pt" ,
+    "yolov5l": "https://github.com/ultralytics/yolov5/releases/download/v6.0/yolov5l.pt",
+    "yolov5x": "https://github.com/ultralytics/yolov5/releases/download/v6.0/yolov5x.pt",
 }
 
 def download_pretrained_weights(name, cached=None):

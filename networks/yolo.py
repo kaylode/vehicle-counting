@@ -1,10 +1,19 @@
+import os
+import json
 import torch
 import numpy as np
 from torch import nn
 from augmentations import MEAN, STD
+from utilities.utils import download_pretrained_weights
+
+CACHE_DIR = './.cache'
 
 def get_model(args, config):
     global MEAN, STD
+
+    if args.weight is None:
+        args.weight = os.path.join(CACHE_DIR, f'{config.model_name}.pth')
+        download_pretrained_weights(f'{config.model_name}', args.weight)
 
     net = YoloBackbone(
         weight=args.weight,
@@ -42,41 +51,39 @@ class YoloBackbone(BaseBackbone):
         super().__init__(**kwargs)
 
 
-        print('es')
         self.model = torch.hub.load('ultralytics/yolov5', 'custom', path=weight, force_reload=True) 
 
         self.class_names = self.model.names
         
         self.model.conf = min_conf  # NMS confidence threshold
         self.model.iou = min_iou  # NMS IoU threshold
-        self.model.classes = filter_classes   # (optional list) filter by class, i.e. = [0, 15, 16] for persons, cats and dogs
+        self.model.classes = list(filter_classes)   # (optional list) filter by class, i.e. = [0, 15, 16] for persons, cats and dogs
         self.model.multi_label = False  # NMS multiple labels per box
         self.model.max_det = max_det  # maximum number of detections per image
 
     def detect(self, batch, device):
         inputs = batch["imgs"]
-        inputs = inputs.to(device)
         results = self.model(inputs)  # inference
+        
         outputs = results.pandas().xyxy
     
         out = []
         for i, output in enumerate(outputs):            
-            output = output.to_json(orient="records")
+            output = json.loads(output.to_json(orient="records"))
 
             boxes = []
             labels = []
             scores = []
-
-            for obj in output:
-                boxes.append([obj['xmin'], obj['xmax'], obj['ymin'], obj['ymax']])
-                labels.append(obj["class"])
-                scores.append(obj["confidence"])
+            for obj_dict in output:
+                boxes.append([obj_dict['xmin'], obj_dict['ymin'], obj_dict['xmax']-obj_dict['xmin'], obj_dict['ymax']-obj_dict['ymin']])
+                labels.append(obj_dict["class"])
+                scores.append(obj_dict["confidence"])
           
             if len(boxes) > 0:
                 out.append({
-                    'bboxes': boxes,
-                    'classes': labels,
-                    'scores': scores,
+                    'bboxes': np.array(boxes),
+                    'classes': np.array(labels),
+                    'scores': np.array(scores),
                 })
             else:
                 out.append({

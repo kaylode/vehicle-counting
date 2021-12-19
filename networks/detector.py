@@ -12,7 +12,7 @@ class Detector(BaseModel):
     def __init__(self, model, **kwargs):
         super(Detector, self).__init__(**kwargs)
         self.model = model
-        self.model_name = self.model.name
+        self.model_name = "yolov5"
         if self.optimizer is not None:
             self.optimizer = self.optimizer(self.parameters(), lr= self.lr)
             self.set_optimizer_params()

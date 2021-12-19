@@ -1,6 +1,6 @@
 settings:
   zone_path: "./demo/sample"
-  checkpoint: "./models/deepsort/deep/checkpoint/ckpt.t7"
+  checkpoint: "./networks/deepsort/deep/checkpoint/ckpt.t7"
   cam:
     cam_01:
       tracking_config:
