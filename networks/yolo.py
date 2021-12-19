@@ -12,15 +12,19 @@ def get_model(args, config):
     global MEAN, STD
 
     if args.weight is None:
-        args.weight = os.path.join(CACHE_DIR, f'{config.model_name}.pth')
+        os.makedirs(CACHE_DIR, exist_ok=True)
+        args.weight = os.path.join(CACHE_DIR, f'{config.model_name}.pt')
         download_pretrained_weights(f'{config.model_name}', args.weight)
+
+
+    filter_classes = None if not args.mapping_dict else args.mapping_dict.keys()
 
     net = YoloBackbone(
         weight=args.weight,
         min_iou=config.min_iou,
         min_conf=config.min_conf,
         max_det=config.max_det,
-        filter_classes=args.mapping_dict.keys())
+        filter_classes=filter_classes)
 
         
     # If use YOLO, use these numbers
