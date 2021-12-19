@@ -8,18 +8,9 @@ settings:
   batch_size: 16
   num_workers: 2
 
-  fusion_mode: 'nms'                    # Post-process method [nms | wbf | None]
-  min_iou_val:  0.5                     # IOU threshold for validation
-  min_conf_val: 0.1                    # Confidence score threshold for validation
-  max_images_val: 10000                 # max number of images for validation
-  max_pre_nms: -1                     # max detections for post process, input to NMS, set <0 for default [effdet: 5000; frcnn: 1000; yolo: 30000]
-  max_post_nms: -1                     # max detections per image limit, output of NMS, set <0 for default [effdet: 100; frcnn: 100; yolo: 300]
+  min_iou:  0.45                     # IOU threshold for validation
+  min_conf: 0.25                    # Confidence score threshold for validation
+  max_det: 300                     # max detections per image limit, output of NMS, set <0 for default [effdet: 100; frcnn: 100; yolo: 300]
 
   image_size: [640,640]               # should be square to prevent bugs [512, 640, 768, 896, 1024, 1280, 1280, 1536, 1536]
   keep_ratio: True                     # whether to use resize padding
-
-  # Test time augmentation
-  tta: False                             # whether to use TTA while validation
-  tta_ensemble_mode: "wbf"              # ensemble method when TTA
-  tta_conf_threshold: 0.01
-  tta_iou_threshold: 0.9
