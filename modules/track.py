@@ -1,7 +1,7 @@
 import numpy as np
 import random
-from models import DeepSort
-from utils.counting import (
+from networks import DeepSort
+from utilities.counting import (
     load_zone_anno, check_bbox_intersect_polygon, 
     find_best_match_direction, save_tracking_to_csv)
 

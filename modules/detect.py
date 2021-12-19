@@ -1,7 +1,7 @@
 import os
 import numpy as np
 import torch
-from models import get_model, Detector
+from networks import get_model, Detector
 
 
 
@@ -10,7 +10,8 @@ class ImageDetect:
         self.device = torch.device("cuda" if torch.cuda.is_available() else 'cpu')   
     
         self.mapping_dict = args.mapping     
-        self.class_names = None
+        net = get_model(args, config)
+        self.class_names = net.class_names
         
         if self.mapping_dict is not None:
             self.included_classes = list(self.mapping_dict.keys())
@@ -18,7 +19,6 @@ class ImageDetect:
             sorted_unique_class_ids = sorted(np.unique(class_ids))
             self.class_names = [self.class_names[i] for i in sorted_unique_class_ids]
 
-        net = get_model(args, config)
 
         self.model = Detector(model = net, device = self.device)
         self.model.eval()

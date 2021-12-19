@@ -1,4 +1,4 @@
-from utils.getter import *
+from utilsx.getter import *
 import argparse
 import os
 from modules import CountingPipeline
@@ -35,16 +35,16 @@ if __name__ == '__main__':
 
 
     # If you not use any weight and want to use pretrained on COCO, uncomment these lines
-    if args.weight is None:
-        MAPPING_DICT = {
-            0: 0,
-            1: 0,
-            2: 1,
-            3: 0,
-            5: 2,
-            7: 3
-        }
-        args.mapping_dict = MAPPING_DICT
+    # if args.weight is None:
+    MAPPING_DICT = {
+        0: 0,
+        1: 0,
+        2: 1,
+        3: 0,
+        5: 2,
+        7: 3
+    }
+    args.mapping_dict = MAPPING_DICT
 
     main(args, config)
     

@@ -9,8 +9,8 @@ import albumentations as A
 from albumentations.pytorch.transforms import ToTensorV2
 from augmentations.transforms import get_resize_augmentation, MEAN, STD
 
-from utils.utils import write_to_video
-from utils.counting import visualize_merged
+from utilities.utils import write_to_video
+from utilities.counting import visualize_merged
 
 class VideoSet:
     def __init__(self, config, input_path):

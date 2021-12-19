@@ -11,7 +11,7 @@ def get_model(args, config):
         min_iou=config.min_iou,
         min_conf=config.min_conf,
         max_det=config.max_det,
-        filter_classes=args.mapping.keys())
+        filter_classes=args.mapping_dict.keys())
 
         
     # If use YOLO, use these numbers
@@ -39,11 +39,14 @@ class YoloBackbone(BaseBackbone):
         filter_classes=None,
         **kwargs):
 
-        super(YoloBackbone, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
 
-        self.model = torch.hub.load('ultralytics/yolov5', 'custom', path=weight) 
+        print('es')
+        self.model = torch.hub.load('ultralytics/yolov5', 'custom', path=weight, force_reload=True) 
 
+        self.class_names = self.model.names
+        
         self.model.conf = min_conf  # NMS confidence threshold
         self.model.iou = min_iou  # NMS IoU threshold
         self.model.classes = filter_classes   # (optional list) filter by class, i.e. = [0, 15, 16] for persons, cats and dogs
