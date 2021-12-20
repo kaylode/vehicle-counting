@@ -50,14 +50,13 @@ cam_01.json # match video name
 
 <div align="center"><img width="1000" alt="screen" src="demo/dataset.png"></div>
 
-<!-- ## 🥇 Pretrained weights
+## 🥇 Pretrained weights
 - Download finetuned models from on AIC-HCMC-2020 dataset:
 
-Model | Image Size | Weights | MAP-S | MAP-M | MAP-L | ALL
+Model | Image Size | Weights | Precision | Recall | MAP@0.5 | MAP@0.5-0.95
 --- | --- | --- | --- | --- | --- | ---
-EfficientDet-D2 | 640x640 | dead | 0.061 | 0.456 | 0.475 | 0.451
-YOLOv5s | 640x640 | dead | 0.17 | 0.466 | 0.487 | 0.466
-YOLOv5m | 640x640 | dead | 0.187 | 0.487 | 0.501 | 0.481 -->
+YOLOv5s | 640x640 | [link](https://drive.google.com/file/d/1-Y6H3QdRevfBKYDQxgRiR2CRinRVPt9O/view?usp=sharing) | 0.87203 |	0.87356 |	0.91797 |	0.60795
+YOLOv5m | 1024x1024 | [link](https://drive.google.com/file/d/10It3-bByVQUiLV9q4sdJDXQ3bNK9obKi/view?usp=sharing) | 0.89626	| 0.91098 |	0.94711 |	0.66816
 
 ## 🌟 **Inference**
 
