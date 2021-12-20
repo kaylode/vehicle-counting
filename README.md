@@ -17,12 +17,6 @@
 - For inference, use this notebook [![Notebook](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/15pgDMnvXa-ZgGMeZkbbpg-gqa5Nttfi3?usp=sharing)
 - To retrain detection model, follow instructions from [original Yolov5](https://github.com/ultralytics/yolov5)
 
-## Results
-
-|<img width="1604" alt="screen" src="demo/cam_04.gif">|
-|:-------------------------:|
-|<img width="1604" alt="screen" src="demo/cam_07.gif">|
-
 -----------------------------------------------------------
 
 ## Dataset
@@ -77,6 +71,33 @@ python run.py --input_path=<input video or dir> --output_path=<output dir> --wei
 - **Extra Parameters**:
     - ***--min_conf***:     minimum confident for detection
     - ***--min_iou***:      minimum iou for detection
+
+-----------------------------------------------------------
+
+## Results
+
+- After running, a .csv file contains results has following example format:
+
+track_id |	frame_id |	box	| color |	label |	direction |	fpoint |	lpoint |	fframe |	lframe
+--- | --- | --- | --- | --- | --- | --- | --- | --- | --- | 
+2	| 3	| [607, 487, 664, 582]	| (144, 238, 144) |	0	| 1	| (635.5, 534.5)	| (977.0, 281.5)	| 3	| 109
+2	| 4	| [625, 475, 681, 566]	| (144, 238, 144)	| 0	| 1	| (635.5, 534.5)	| (977.0, 281.5)	| 3	| 109
+2	| 5	| [631, 471, 686, 561]	| (144, 238, 144)	| 0	| 1	| (635.5, 534.5)	| (977.0, 281.5)	| 3	| 109
+
+- With:
+  - `track_id`: the id of the object
+  - `frame_id`: the current frame
+  - `box`: the box wraps around the object in the corresponding frame
+  - `color`: the color which is used to visualize the object
+  - `direction`: the direction of the object
+  - `fpoint`, `lpoint`: first/last coordinate where the object appears 
+  - `fframe`, `lframe`: first/last frame where the object appears 
+  
+| Visualization result |
+|:-------------------------:|
+|<img width="1604" alt="screen" src="demo/cam_04.gif">|
+|<img width="1604" alt="screen" src="demo/cam_07.gif">|
+
 
 ## References
 - DeepSORT from https://github.com/ZQPei/deep_sort_pytorch
