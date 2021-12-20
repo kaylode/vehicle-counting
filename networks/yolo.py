@@ -61,7 +61,7 @@ class YoloBackbone(BaseBackbone):
         
         self.model.conf = min_conf  # NMS confidence threshold
         self.model.iou = min_iou  # NMS IoU threshold
-        self.model.classes = list(filter_classes)   # (optional list) filter by class, i.e. = [0, 15, 16] for persons, cats and dogs
+        self.model.classes = list(filter_classes) if filter_classes is not None else None   # (optional list) filter by class, i.e. = [0, 15, 16] for persons, cats and dogs
         self.model.multi_label = False  # NMS multiple labels per box
         self.model.max_det = max_det  # maximum number of detections per image
 
