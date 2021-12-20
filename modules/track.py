@@ -1,7 +1,7 @@
 import numpy as np
 import random
-from models import DeepSort
-from utils.counting import (
+from networks import DeepSort
+from utilities.counting import (
     load_zone_anno, check_bbox_intersect_polygon, 
     find_best_match_direction, save_tracking_to_csv)
 
@@ -79,7 +79,7 @@ class VideoCounting:
         self.polygons, self.directions = load_zone_anno(zone_path)
     
     def run(self, frames, tracks, labels, boxes, output_path=None):
-        from utils.utils import color_list
+        from utilities.utils import color_list
         """
         obj id must starts from 0
         boxes in xyxy format

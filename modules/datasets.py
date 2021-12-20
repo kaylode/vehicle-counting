@@ -9,8 +9,8 @@ import albumentations as A
 from albumentations.pytorch.transforms import ToTensorV2
 from augmentations.transforms import get_resize_augmentation, MEAN, STD
 
-from utils.utils import write_to_video
-from utils.counting import visualize_merged
+from utilities.utils import write_to_video
+from utilities.counting import visualize_merged
 
 class VideoSet:
     def __init__(self, config, input_path):
@@ -19,7 +19,6 @@ class VideoSet:
         self.transforms = A.Compose([
             get_resize_augmentation(config.image_size, keep_ratio=config.keep_ratio),
             A.Normalize(mean=MEAN, std=STD, max_pixel_value=1.0, p=1.0),
-            ToTensorV2(p=1.0)
         ])
 
         self.initialize_stream()
@@ -53,22 +52,12 @@ class VideoSet:
             return None
         
         self.current_frame_id = idx+1
-        frame = cv2.cvtColor(ori_frame, cv2.COLOR_BGR2RGB).astype(np.float32)
-        frame /= 255.0
-        if self.transforms is not None:
-            inputs = self.transforms(image=frame)['image']
-
-        image_w, image_h = self.image_size
-        ori_height, ori_width, _ = ori_frame.shape
+        frame = cv2.cvtColor(ori_frame, cv2.COLOR_BGR2RGB) 
 
         return {
-            'img': inputs,
+            'img': frame,
             'frame': self.current_frame_id,
             'ori_img': ori_frame,
-            'image_ori_w': ori_width,
-            'image_ori_h': ori_height,
-            'image_w': image_w,
-            'image_h': image_h,
         }
 
     def collate_fn(self, batch):
@@ -76,26 +65,14 @@ class VideoSet:
         if len(batch) == 0:
             return None
 
-        imgs = torch.stack([s['img'] for s in batch])   
+        imgs = [s['img'] for s in batch]
         ori_imgs = [s['ori_img'] for s in batch]
         frames = [s['frame'] for s in batch]
-        image_ori_ws = [s['image_ori_w'] for s in batch]
-        image_ori_hs = [s['image_ori_h'] for s in batch]
-        image_ws = [s['image_w'] for s in batch]
-        image_hs = [s['image_h'] for s in batch]
-        img_scales = torch.tensor([1.0]*len(batch), dtype=torch.float)
-        img_sizes = torch.tensor([imgs[0].shape[-2:]]*len(batch), dtype=torch.float)   
 
         return {
             'imgs': imgs,
             'frames': frames,
             'ori_imgs': ori_imgs,
-            'image_ori_ws': image_ori_ws,
-            'image_ori_hs': image_ori_hs,
-            'image_ws': image_ws,
-            'image_hs': image_hs,
-            'img_sizes': img_sizes, 
-            'img_scales': img_scales
         }
 
     def __len__(self):
