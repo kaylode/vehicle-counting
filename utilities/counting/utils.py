@@ -5,6 +5,8 @@ import pandas as pd
 from .bb_polygon import *
 
 def draw_arrow(image, start_point, end_point, color):
+    start_point = tuple(start_point)
+    end_point = tuple(end_point)
     image = cv2.line(image, start_point, end_point, color, 3)
     image = cv2.circle(image, end_point, 8, color, -1)
     return image
