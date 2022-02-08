@@ -64,6 +64,9 @@ class CountingPipeline:
                     frame_id = batch['frames'][i]
 
                     ori_img = ori_imgs[i]
+
+                    if len(boxes) == 0:
+                        continue
                     track_result = self.tracker.run(ori_img, boxes, labels, scores)
                     
 
